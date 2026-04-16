@@ -89,6 +89,7 @@ class MindMapPanel(private val project: Project) : JPanel(BorderLayout()), Dispo
             is JsBridge.MessageEvent.HistoryBack -> SwingUtilities.invokeLater { if (!isDisposed) handleHistoryBack() }
             is JsBridge.MessageEvent.HistoryForward -> SwingUtilities.invokeLater { if (!isDisposed) handleHistoryForward() }
             is JsBridge.MessageEvent.Restart     -> SwingUtilities.invokeLater { if (!isDisposed) handleRestart() }
+            is JsBridge.MessageEvent.Refresh    -> handleRefresh()
             is JsBridge.MessageEvent.SetDepth    -> depths = depths.copy(outbound = event.outbound, inbound = event.inbound)
             is JsBridge.MessageEvent.SetRetraceDepth -> depths = depths.copy(retraceOutbound = event.outbound, retraceInbound = event.inbound)
             is JsBridge.MessageEvent.SetDebug -> {
@@ -121,6 +122,34 @@ class MindMapPanel(private val project: Project) : JPanel(BorderLayout()), Dispo
         history.clear()
         currentGraphData = null
         sendHistoryState()
+    }
+
+    // Re-analyzes the current root function to pick up newly added/removed functions.
+    private fun handleRefresh() {
+        if (isDisposed) return
+        val rootNode = currentGraphData?.nodes?.find { it.type == NodeType.ROOT } ?: return
+        val psiElement = history.findPsiElement(rootNode.id) ?: return
+        debug { "Refresh requested — re-analyzing root '${rootNode.name}'" }
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Refreshing Mindmap...", true) {
+            override fun run(indicator: ProgressIndicator) {
+                try {
+                    if (isDisposed) return
+                    if (!ReadAction.compute<Boolean, RuntimeException> { psiElement.isValid }) {
+                        debug { "Refresh failed — root PSI element is stale" }; return
+                    }
+                    val startTime = System.currentTimeMillis()
+                    val newData = analyzeElement(psiElement, indicator)
+                    debug { "Refresh complete — analyzed in ${System.currentTimeMillis() - startTime}ms, ${newData.nodes.size} nodes, ${newData.edges.size} edges" }
+                    SwingUtilities.invokeLater {
+                        if (!isDisposed) updateGraph(newData)
+                    }
+                } catch (ce: com.intellij.openapi.progress.ProcessCanceledException) {
+                    throw ce
+                } catch (ex: Exception) {
+                    LOG.error("Failed to refresh graph", ex); DebugLog.error("Failed to refresh graph", ex)
+                }
+            }
+        })
     }
 
     // PSI reads must not block the EDT, so we dispatch to a pooled thread first.

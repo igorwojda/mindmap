@@ -1582,6 +1582,13 @@
                 stroke="currentColor" stroke-width="1.8">
                 <polyline points="7,3 12,8 7,13" />
             </svg></button>
+        <button class="nb h" id="bref" data-t="Refresh graph" data-k="Shift+R"><svg viewBox="0 0 16 16" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1.5 8a6.5 6.5 0 0 1 11-4.7"/>
+                <polyline points="13 1 13 4.5 9.5 4.5"/>
+                <path d="M14.5 8a6.5 6.5 0 0 1-11 4.7"/>
+                <polyline points="3 15 3 11.5 6.5 11.5"/>
+            </svg></button>
         <div class="sep"></div>
         <div id="bc"><span class="bci">&#9679;</span><span class="bcn" id="bcn">No function selected</span></div>
         <button class="sb" id="sbn" data-t="Search" data-k="/"><svg viewBox="0 0 16 16" fill="none"
@@ -1897,7 +1904,7 @@
         // ==== DOM CACHE ====
         const $ = id => document.getElementById(id);
         const $gc = $('gc'), $tc = $('tc'), $ld = $('ld'), $es = $('es');
-        const $bg = $('bg'), $bt = $('bt'), $bbk = $('bbk'), $bfw = $('bfw'), $hbg = $('hbg');
+        const $bg = $('bg'), $bt = $('bt'), $bbk = $('bbk'), $bfw = $('bfw'), $bref = $('bref'), $hbg = $('hbg');
         const $bcn = $('bcn'), $sbn = $('sbn'), $sin = $('sin');
         const $bhelp = $('bhelp'), $bres = $('bres'), $bset = $('bset');
         const $sOy = $('sOy'), $sCl = $('sCl');
@@ -2329,7 +2336,7 @@
             // Reset hidden state so stale IDs from previous graph don't ghost new nodes
             _hiddenNodes.clear(); _hiddenNodeSpecs.clear(); _cascadeSet.clear(); _dimmedNodes.clear();
             $hnp.classList.remove('v'); $hnpBody.innerHTML = ''; $hnpCnt.textContent = '0';
-            $es.classList.add('h'); $ld.classList.remove('h');
+            $es.classList.add('h'); $ld.classList.remove('h'); $bref.classList.remove('h');
             const root = D.nodes.find(n => n.type === 'ROOT');
             if (root) { $bcn.textContent = root.name || 'anonymous'; sel = root.id; }
             if (cv === 'graph') {
@@ -2829,6 +2836,7 @@
         $bg.addEventListener('click', () => sw('graph'));
         $bt.addEventListener('click', () => sw('tree'));
         $bres.addEventListener('click', () => resetGraph());
+        $bref.addEventListener('click', () => { if (D) { _send({ type: 'refresh' }); toast('Refreshing graph…', 'var(--accent)') } });
 
         function resetGraph() {
             if (net) { net.destroy(); net = null; }
@@ -2839,6 +2847,7 @@
             $es.classList.remove('h'); $zc.classList.add('h'); $ld.classList.add('h');
             $mmc.classList.add('h');
             $bcn.textContent = 'No function selected';
+            $bref.classList.add('h');
             _send({ type: 'restart' });
             toast('Memory cleared', 'var(--accent)');
         }
@@ -3051,7 +3060,8 @@
             }
 
             if (e.key === '?' || e.key === '¿') { $mOy.classList.add('s'); return }
-            if (e.key === 'r' || e.key === 'R') { resetGraph(); return }
+            if (e.key === 'R' && e.shiftKey) { if (D) { _send({ type: 'refresh' }); toast('Refreshing graph…', 'var(--accent)') } return }
+            if (e.key === 'r') { resetGraph(); return }
             if (e.key === 'h' || e.key === 'H') { setPanMode(true); return }
             if (e.key === 'v' || e.key === 'V') { setPanMode(false); return }
 

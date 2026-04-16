@@ -59,6 +59,8 @@ class JsBridge(
         data object HistoryForward : MessageEvent()
         /** User restarted: clear graph and history. */
         data object Restart : MessageEvent()
+        /** User requested re-analysis of the current root function. */
+        data object Refresh : MessageEvent()
         /** User changed depth sliders for normal graph generation. */
         data class SetDepth(val outbound: Int, val inbound: Int) : MessageEvent()
         /** User changed depth sliders specifically for trace operations. */
@@ -212,6 +214,7 @@ class JsBridge(
             "history_back" -> MessageEvent.HistoryBack
             "history_forward" -> MessageEvent.HistoryForward
             "restart" -> MessageEvent.Restart
+            "refresh" -> MessageEvent.Refresh
             "set_depth" -> {
                 val out = msg.outbound?.coerceIn(1, 5) ?: return null
                 val inn = msg.inbound?.coerceIn(1, 5) ?: return null
