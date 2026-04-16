@@ -240,6 +240,35 @@
             color: var(--tx5)
         }
 
+        .sb .sb-clear {
+            width: 14px;
+            height: 14px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            color: var(--tx4);
+            cursor: pointer;
+            padding: 0;
+            flex-shrink: 0;
+            border-radius: 3px
+        }
+
+        .sb .sb-clear:hover {
+            color: var(--tx);
+            background: rgba(166,173,200,.15)
+        }
+
+        .sb.op .sb-clear.v {
+            display: flex
+        }
+
+        .sb.has-filter {
+            border-color: rgba(137,180,250,.35);
+            color: var(--accent)
+        }
+
         .tb {
             width: 24px;
             height: 24px;
@@ -1588,7 +1617,7 @@
                 stroke="currentColor" stroke-width="1.5">
                 <circle cx="7" cy="7" r="4.5" />
                 <line x1="10.5" y1="10.5" x2="14" y2="14" />
-            </svg><input id="sin" placeholder="Filter nodes…" /></button>
+            </svg><input id="sin" placeholder="Filter nodes…" /><button class="sb-clear" id="scl"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button></button>
         <div class="sep"></div>
         <button class="tb" id="bres" data-t="Restart / Clear" data-k="R"><svg viewBox="0 0 16 16" fill="none"
                 stroke="currentColor" stroke-width="1.8">
@@ -1964,10 +1993,13 @@
 
         // ==== SEARCH ====
         let _sf;
-        $sbn.addEventListener('click', e => { if (!sOpen) { sOpen = true; $sbn.classList.add('op'); setTimeout(() => $sin.focus(), 250); e.stopPropagation() } });
+        const $scl = $('scl');
+        function _syncFilterUI() { $scl.classList.toggle('v', sf.length > 0); $sbn.classList.toggle('has-filter', !sOpen && sf.length > 0) }
+        $sbn.addEventListener('click', e => { if (!sOpen) { sOpen = true; $sbn.classList.add('op'); $sin.value = sf; _syncFilterUI(); setTimeout(() => { $sin.focus(); $sin.select() }, 250); e.stopPropagation() } });
         $sin.addEventListener('click', e => e.stopPropagation());
-        $sin.addEventListener('input', e => { clearTimeout(_sf); _sf = setTimeout(() => { sf = e.target.value; filtAll() }, 80) });
-        document.addEventListener('click', e => { if (sOpen && !$sbn.contains(e.target)) { sOpen = false; $sbn.classList.remove('op'); sf = ''; $sin.value = ''; filtAll() } });
+        $sin.addEventListener('input', e => { clearTimeout(_sf); _sf = setTimeout(() => { sf = e.target.value; _syncFilterUI(); filtAll() }, 80) });
+        $scl.addEventListener('click', e => { e.stopPropagation(); sf = ''; $sin.value = ''; _syncFilterUI(); filtAll() });
+        document.addEventListener('click', e => { if (sOpen && !$sbn.contains(e.target)) { sOpen = false; $sbn.classList.remove('op'); _syncFilterUI() } });
 
         // Help Modal
         $bhelp.addEventListener('click', () => $mOy.classList.add('s'));
@@ -3039,13 +3071,13 @@
         // ==== KEYBOARD ====
         document.addEventListener('keydown', e => {
             if (e.target.tagName === 'INPUT') {
-                if (e.key === 'Escape') { sOpen = false; $sbn.classList.remove('op'); sf = ''; $sin.value = ''; $sin.blur(); filtAll() }
+                if (e.key === 'Escape') { sOpen = false; $sbn.classList.remove('op'); sf = ''; $sin.value = ''; $sin.blur(); _syncFilterUI(); filtAll() }
                 return;
             }
 
             if (e.key === 'Escape') {
                 if ($mOy.classList.contains('s')) { $mOy.classList.remove('s'); return }
-                if (sOpen) { sOpen = false; $sbn.classList.remove('op'); sf = ''; $sin.value = ''; $sin.blur(); filtAll(); return }
+                if (sOpen) { sOpen = false; $sbn.classList.remove('op'); sf = ''; $sin.value = ''; $sin.blur(); _syncFilterUI(); filtAll(); return }
                 if (cv === 'graph' && net) { net.unselectAll(); selCount = 0; updateShortcuts(); return }
                 return;
             }
