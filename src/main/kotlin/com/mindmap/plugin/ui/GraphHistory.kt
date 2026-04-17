@@ -1,16 +1,23 @@
 package com.mindmap.plugin.ui
 
 import com.intellij.openapi.application.ReadAction
+import com.mindmap.plugin.analysis.CallableFunction
 import com.mindmap.plugin.analysis.GraphData
-import org.jetbrains.kotlin.psi.KtNamedFunction
 
 /**
  * Browser-like back/forward navigation stack for call graph views.
  *
+ * # Language-neutral
+ *
+ * This class holds only [GraphData] (primitive strings/numbers + the `@Transient`
+ * [CallableFunction] handle on each node). It does not import any specific language's
+ * PSI type — all traversal goes through the [CallableFunction] abstraction so new
+ * languages work without touching this file.
+ *
  * [reset] starts a fresh history (used when Alt+G opens a new root function).
  * [push] adds a new entry and discards any forward history (used by expand/re-center).
- * [updateCurrent] replaces the current entry in-place (used when a trace merges new nodes
- * into the visible graph without creating a new history step).
+ * [updateCurrent] replaces the current entry in-place (used when a trace merges new
+ * nodes into the visible graph without creating a new history step).
  *
  * All methods must be called on the EDT.
  */
@@ -71,17 +78,20 @@ class GraphHistory(private val maxSize: Int = 50) {
     }
 
     /**
-     * Finds a live PSI element for [nodeId] by searching current and past history entries.
-     * History is searched because PSI elements can become invalid after file edits,
-     * and an older snapshot may still hold a valid reference for the same node.
+     * Finds a live [CallableFunction] for [nodeId] by searching current and past history
+     * entries. History is searched because PSI elements can become invalid after file
+     * edits, and an older snapshot may still hold a valid reference for the same node.
+     *
+     * Validity is checked against [CallableFunction.navigationElement] — the navigation
+     * PSI is what the UI needs and what survives refactors on a per-language basis.
      */
-    fun findPsiElement(nodeId: String): KtNamedFunction? {
+    fun findCallable(nodeId: String): CallableFunction? {
         return try {
             // .isValid is a PSI read — must be inside ReadAction regardless of calling thread.
-            ReadAction.compute<KtNamedFunction?, RuntimeException> {
-                current?.nodes?.find { it.id == nodeId }?.psiElement?.takeIf { it.isValid }
+            ReadAction.compute<CallableFunction?, RuntimeException> {
+                current?.nodes?.find { it.id == nodeId }?.psiElement?.takeIf { it.navigationElement.isValid }
                     ?: entries.asReversed().firstNotNullOfOrNull { graphData ->
-                        graphData.nodes.find { it.id == nodeId }?.psiElement?.takeIf { it.isValid }
+                        graphData.nodes.find { it.id == nodeId }?.psiElement?.takeIf { it.navigationElement.isValid }
                     }
             }
         } catch (_: Exception) {

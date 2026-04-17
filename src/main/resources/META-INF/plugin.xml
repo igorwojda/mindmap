@@ -9,7 +9,7 @@
     <description
     ><![CDATA[
     <h2>Mindmap - Call Graph Visualizer</h2>
-    <p>Visualize function call graphs as interactive mind maps inside your IDE. Place your cursor on any <b>Kotlin</b> function and press <b>Alt / Option + G</b> to instantly see its callers, callees, and function depth.</p>
+    <p>Visualize function call graphs as interactive mind maps inside your IDE. Place your cursor on any <b>Kotlin</b> or <b>Java</b> function and press <b>Alt / Option + G</b> to instantly see its callers, callees, and function depth — including <b>cross-language edges</b> between Kotlin and Java.</p>
 
     <h3>Features</h3>
     <ul>
@@ -29,18 +29,27 @@
 
     <h3>Quick Start</h3>
     <ol>
-        <li>Place cursor inside any Kotlin function</li>
+        <li>Place cursor inside any Kotlin or Java function</li>
         <li>Press <b>Alt / Option + G</b> (or right-click → <em>Generate Mindmap</em>)</li>
         <li>Explore the interactive call graph in the Mindmap tool window</li>
     </ol>
 
     <p>For shortcuts, detailed help, and more visit <a href="https://vishal2376.github.io/mindmap">vishal2376.github.io/mindmap</a></p>
 
-    <p><em>Supports Kotlin (K1 &amp; K2) on IntelliJ IDEA 2024.3–2026.1 and Android Studio Ladybug+.</em></p>
+    <p><em>Supports Kotlin (K1 &amp; K2) and Java on IntelliJ IDEA 2024.3–2026.1 and Android Studio Ladybug+. Built on an extensible provider architecture — additional JetBrains languages can be added without UI changes.</em></p>
     ]]></description>
 
     <change-notes
     ><![CDATA[
+    <h3>1.0.5</h3>
+    <ul>
+        <li><b>Java support</b> — Alt+G now works on Java methods; graphs render with Java as the root (#2)</li>
+        <li><b>Cross-language edges (Java ↔ Kotlin)</b> — Kotlin functions calling Java methods and Java methods calling Kotlin functions now appear as connected nodes in both directions (#2)</li>
+        <li><b>Java inbound callers</b> — ReferencesSearch finds Java callers of Kotlin functions via light-method bridging, and vice versa</li>
+        <li><b>JUnit test detection for Java</b> — `@Test`, `@ParameterizedTest`, `@RepeatedTest` (Jupiter and JUnit 4), TestNG `@Test`, and `kotlin.test.Test` annotations are filtered when "exclude tests" is enabled</li>
+        <li><b>Extensible provider architecture</b> — new languages can be onboarded by implementing a single `CallableProvider` extension without touching the UI, history, or graph orchestrator</li>
+    </ul>
+
     <h3>1.0.4</h3>
     <ul>
         <li><b>Collapse/Expand All</b> — New buttons in tree view header to collapse or expand all nested nodes at once (#8)</li>
@@ -110,8 +119,32 @@
     <depends>com.intellij.modules.java</depends>
     <depends>org.jetbrains.kotlin</depends>
 
+    <!--
+      Extension point for pluggable per-language call-graph resolution.
+      Every supported language (Kotlin, Java today; Python/Go/PHP/Ruby/… in the future)
+      implements `CallableProvider` and registers itself via this EP. The core plugin
+      code (GraphAnalyzer, MindMapPanel, ShowCallGraphAction) never imports a specific
+      language's PSI type — all dispatch happens through the EP.
+    -->
+    <extensionPoints>
+        <extensionPoint
+            name="callableProvider"
+            interface="com.mindmap.plugin.analysis.CallableProvider"/>
+    </extensionPoints>
+
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
         <supportsKotlinPluginMode supportsK1="true" supportsK2="true" />
+    </extensions>
+
+    <!--
+      Core language providers. Kotlin (hard dep via `org.jetbrains.kotlin`) and Java
+      (hard dep via `com.intellij.modules.java`) both ship unconditionally. Optional
+      languages (Python etc.) register their providers from a separate config-file
+      that only loads when the host IDE has the matching module.
+    -->
+    <extensions defaultExtensionNs="com.mindmap.plugin">
+        <callableProvider implementation="com.mindmap.plugin.analysis.KotlinCallableProvider"/>
+        <callableProvider implementation="com.mindmap.plugin.analysis.JavaCallableProvider"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij">

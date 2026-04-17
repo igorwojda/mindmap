@@ -5,23 +5,32 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ReadAction
-import com.mindmap.plugin.DebugLog
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.wm.ToolWindowManager
-import com.intellij.psi.util.PsiTreeUtil
-import javax.swing.SwingUtilities
+import com.mindmap.plugin.DebugLog
+import com.mindmap.plugin.analysis.CallableFunction
 import com.mindmap.plugin.analysis.GraphAnalyzer
 import com.mindmap.plugin.ui.MindMapPanel
-import org.jetbrains.kotlin.psi.KtNamedFunction
+import javax.swing.SwingUtilities
 
 /**
- * Alt+G action that triggers call graph generation for the Kotlin function at the cursor.
+ * Alt+G entry point. **Language-agnostic by design.**
  *
- * Finds the innermost [KtNamedFunction] at the caret position, opens the Mindmap tool window,
- * then runs [GraphAnalyzer] on a background thread to avoid blocking the EDT.
+ * This class doesn't know about Kotlin, Java, Python, or any other language. It asks
+ * [GraphAnalyzer.findCallable] for the nearest enclosing callable at the cursor, which
+ * in turn dispatches to every registered
+ * [com.mindmap.plugin.analysis.CallableProvider] until one returns a non-null hit.
+ *
+ * **Do not add language-specific checks here.** To onboard a new language, implement a
+ * `CallableProvider` and register it via XML — this file does not need to change.
+ *
+ * # Thread model
+ * - PSI reads happen inside [ReadAction] blocks; we never touch PSI on the EDT.
+ * - The expensive analysis runs in a [Task.Backgroundable]; the final UI update is
+ *   pushed back to the EDT via [SwingUtilities.invokeLater].
  */
 class ShowCallGraphAction : AnAction() {
 
@@ -40,24 +49,28 @@ class ShowCallGraphAction : AnAction() {
             val offset = editor.caretModel.offset
             val element = psiFile.findElementAt(offset) ?: return
 
-            val function = ReadAction.compute<KtNamedFunction?, RuntimeException> {
-                PsiTreeUtil.getParentOfType(element, KtNamedFunction::class.java)
+            // Dispatch across every registered CallableProvider — the first one that
+            // claims the element wins. This is the only language-dispatch point in the
+            // action layer.
+            val callable = ReadAction.compute<CallableFunction?, RuntimeException> {
+                GraphAnalyzer(project).findCallable(element)
             } ?: return
 
             val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Mindmap") ?: return
             toolWindow.show()
 
+            val displayName = callable.name ?: "function"
             ProgressManager.getInstance().run(object : Task.Backgroundable(
-                project, "Generating Mindmap for ${function.name ?: "function"}", true
+                project, "Generating Mindmap for $displayName", true
             ) {
                 override fun run(indicator: ProgressIndicator) {
                     try {
                         indicator.isIndeterminate = true
-                        indicator.text = "Analyzing Kotlin call graph..."
+                        indicator.text = "Analyzing call graph (${callable.languageId})..."
 
-                        val graphData = GraphAnalyzer(project).buildGraph(function, indicator)
+                        val graphData = GraphAnalyzer(project).buildGraph(callable, indicator)
 
-                        // UI access and history mutations must happen on EDT.
+                        // UI and history mutations must happen on the EDT.
                         SwingUtilities.invokeLater {
                             val content = toolWindow.contentManager.getContent(0) ?: return@invokeLater
                             val panel = content.component as? MindMapPanel ?: return@invokeLater
@@ -66,33 +79,39 @@ class ShowCallGraphAction : AnAction() {
                     } catch (ce: com.intellij.openapi.progress.ProcessCanceledException) {
                         throw ce
                     } catch (ex: Exception) {
-                        LOG.error("Failed to generate mindmap", ex); DebugLog.error("Failed to generate mindmap", ex)
+                        LOG.error("Failed to generate mindmap", ex)
+                        DebugLog.error("Failed to generate mindmap", ex)
                     }
                 }
             })
         } catch (ex: Exception) {
-            LOG.error("Mindmap action failed", ex); DebugLog.error("Mindmap action failed", ex)
+            LOG.error("Mindmap action failed", ex)
+            DebugLog.error("Mindmap action failed", ex)
         }
     }
 
-    // BGT thread required: PSI reads must not block the EDT.
-    // Action is enabled only when the caret is inside a named Kotlin function.
+    /**
+     * Called on BGT (background thread) because PSI reads must not block the EDT. The
+     * action is enabled whenever *any* registered provider can find a callable at the
+     * cursor — i.e., automatically gains support for a new language the moment its
+     * provider is registered.
+     */
     override fun update(e: AnActionEvent) {
         try {
+            val project = e.project
             val psiFile = e.getData(CommonDataKeys.PSI_FILE)
             val editor = e.getData(CommonDataKeys.EDITOR)
 
             var visible = false
-            if (psiFile != null && editor != null) {
+            if (project != null && psiFile != null && editor != null) {
                 val offset = editor.caretModel.offset
                 val element = psiFile.findElementAt(offset)
                 if (element != null) {
                     visible = ReadAction.compute<Boolean, RuntimeException> {
-                        PsiTreeUtil.getParentOfType(element, KtNamedFunction::class.java) != null
+                        GraphAnalyzer(project).findCallable(element) != null
                     }
                 }
             }
-
             e.presentation.isEnabledAndVisible = visible
         } catch (ex: Exception) {
             e.presentation.isEnabledAndVisible = false
