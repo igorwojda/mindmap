@@ -289,7 +289,7 @@ class GraphAnalyzer(
         return CallGraphNode(
             id = getCallableId(callable),
             name = callable.name ?: "anonymous",
-            signature = buildSignature(callable),
+            signature = callable.signatureDisplay,
             fileName = callable.containingFile?.name ?: "",
             language = callable.languageId,
             type = type,
@@ -302,49 +302,20 @@ class GraphAnalyzer(
     /**
      * Stable unique id across languages. Prefers the FQN + parameter-type signature when
      * available; falls back to `filePath::name` for local / anonymous callables without
-     * an FQN. Parameter-type text is used as a cheap disambiguator between overloads
-     * without resolving full types.
+     * an FQN.
+     *
+     * Both FQN and parameter signature come from the [CallableFunction] itself — no
+     * language-specific `when` branch lives here, so adding a new language does not
+     * force any edit to this file.
      */
     private fun getCallableId(callable: CallableFunction): String {
-        val paramSig = parameterSignature(callable)
+        val paramSig = callable.parameterSignature
         val fq = callable.fqName
         if (!fq.isNullOrEmpty()) return "$fq($paramSig)"
         val filePath = callable.containingFile?.virtualFile?.path
             ?: callable.containingFile?.name
             ?: "unknown"
         return "$filePath::${callable.name ?: "anonymous"}($paramSig)"
-    }
-
-    private fun parameterSignature(callable: CallableFunction): String {
-        return when (callable) {
-            is CallableFunction.Kotlin -> callable.fn.valueParameters.joinToString(",") {
-                it.typeReference?.text ?: "Any"
-            }
-            is CallableFunction.Java -> callable.m.parameterList.parameters.joinToString(",") {
-                it.type.presentableText
-            }
-        }
-    }
-
-    private fun buildSignature(callable: CallableFunction): String {
-        return when (callable) {
-            is CallableFunction.Kotlin -> {
-                val fn = callable.fn
-                val params = fn.valueParameters.joinToString(", ") { p ->
-                    "${p.name ?: "_"}: ${p.typeReference?.text ?: "Any"}"
-                }
-                val ret = fn.typeReference?.text?.let { ": $it" } ?: ""
-                "${fn.name}($params)$ret"
-            }
-            is CallableFunction.Java -> {
-                val m = callable.m
-                val params = m.parameterList.parameters.joinToString(", ") { p ->
-                    "${p.name ?: "_"}: ${p.type.presentableText}"
-                }
-                val ret = ": ${m.returnType?.presentableText ?: "void"}"
-                "${m.name}($params)$ret"
-            }
-        }
     }
 
     /** Language-neutral project-vs-library classification via IntelliJ's file index. */

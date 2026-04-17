@@ -1,0 +1,20 @@
+<!--
+  Optional plugin descriptor. Loaded by the IntelliJ Platform ONLY when the host IDE
+  has `com.intellij.modules.python` enabled (PyCharm Community/Pro, IntelliJ IDEA
+  with the Python plugin installed, Android Studio + Python).
+
+  Registered from the core `plugin.xml` via:
+      <depends optional="true" config-file="mindmap-python.xml">com.intellij.modules.python</depends>
+
+  If this file's `PythonCallableProvider` class cannot be loaded (e.g. the host IDE
+  has no Python support at all), the platform silently skips this config-file —
+  the core plugin keeps working for Kotlin/Java without any ClassNotFoundError.
+-->
+<idea-plugin>
+    <extensions defaultExtensionNs="com.mindmap.plugin">
+        <!-- Python provider discovered via the core `callableProvider` extension point.
+             Uses `com.jetbrains.python.psi.*` PSI, which is only on the classpath when
+             `com.intellij.modules.python` is loaded. -->
+        <callableProvider implementation="com.mindmap.plugin.python.PythonCallableProvider"/>
+    </extensions>
+</idea-plugin>

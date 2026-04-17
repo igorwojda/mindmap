@@ -9,7 +9,7 @@
     <description
     ><![CDATA[
     <h2>Mindmap - Call Graph Visualizer</h2>
-    <p>Visualize function call graphs as interactive mind maps inside your IDE. Place your cursor on any <b>Kotlin</b> or <b>Java</b> function and press <b>Alt / Option + G</b> to instantly see its callers, callees, and function depth — including <b>cross-language edges</b> between Kotlin and Java.</p>
+    <p>Visualize function call graphs as interactive mind maps inside your IDE. Place your cursor on any <b>Kotlin</b>, <b>Java</b>, or <b>Python</b> function and press <b>Alt / Option + G</b> to instantly see its callers, callees, and function depth — including <b>cross-language edges</b> between Kotlin and Java.</p>
 
     <h3>Features</h3>
     <ul>
@@ -29,18 +29,27 @@
 
     <h3>Quick Start</h3>
     <ol>
-        <li>Place cursor inside any Kotlin or Java function</li>
+        <li>Place cursor inside any Kotlin, Java, or Python function</li>
         <li>Press <b>Alt / Option + G</b> (or right-click → <em>Generate Mindmap</em>)</li>
         <li>Explore the interactive call graph in the Mindmap tool window</li>
     </ol>
 
     <p>For shortcuts, detailed help, and more visit <a href="https://vishal2376.github.io/mindmap">vishal2376.github.io/mindmap</a></p>
 
-    <p><em>Supports Kotlin (K1 &amp; K2) and Java on IntelliJ IDEA 2024.3–2026.1 and Android Studio Ladybug+. Built on an extensible provider architecture — additional JetBrains languages can be added without UI changes.</em></p>
+    <p><em>Supports Kotlin (K1 &amp; K2) and Java on IntelliJ IDEA 2024.3–2026.1 and Android Studio Ladybug+. Python support available on PyCharm and IntelliJ IDEA with the Python plugin installed. Built on an extensible provider architecture — additional JetBrains languages can be added without UI changes.</em></p>
     ]]></description>
 
     <change-notes
     ><![CDATA[
+    <h3>1.0.6</h3>
+    <ul>
+        <li><b>Python support (PyCharm + IntelliJ IDEA with Python plugin)</b> — Alt+G now works on Python <code>def</code> functions and methods; graphs render with the Python function as the root (#3)</li>
+        <li><b>Python outbound + inbound resolution</b> — static call-graph extraction via <code>PyCallExpression</code> traversal and <code>ReferencesSearch</code>; library/third-party nodes shown as leaves</li>
+        <li><b>Pytest / unittest detection</b> — functions named <code>test_*</code> or decorated with <code>@pytest.*</code> / <code>@pytest_asyncio.*</code> / <code>@unittest.*</code> are filtered when "exclude tests" is enabled</li>
+        <li><b>Optional dependency</b> — the plugin ZIP still loads cleanly on vanilla IntelliJ IDEA CE and Android Studio; Python features activate only when <code>com.intellij.modules.python</code> is available</li>
+        <li><b>Architecture proof-of-concept</b> — Python support adds exactly one provider + one config-file; zero changes to UI, action layer, history, or graph orchestrator — the target shape for any future language</li>
+    </ul>
+
     <h3>1.0.5</h3>
     <ul>
         <li><b>Java support</b> — Alt+G now works on Java methods; graphs render with Java as the root (#2)</li>
@@ -118,6 +127,14 @@
 
     <depends>com.intellij.modules.java</depends>
     <depends>org.jetbrains.kotlin</depends>
+
+    <!--
+      Optional dependency on Python. Loads `mindmap-python.xml` (which registers
+      `PythonCallableProvider`) only when the host IDE provides
+      `com.intellij.modules.python`. Works on PyCharm, IntelliJ IDEA + Python plugin,
+      and Android Studio + Python plugin. Silently no-op on vanilla IDEA CE.
+    -->
+    <depends optional="true" config-file="mindmap-python.xml">com.intellij.modules.python</depends>
 
     <!--
       Extension point for pluggable per-language call-graph resolution.
