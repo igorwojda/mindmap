@@ -1264,11 +1264,11 @@
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
-            color: var(--tx4);
+            color: var(--tx3);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px
+            gap: 10px
         }
 
         #es.h {
@@ -1276,19 +1276,27 @@
         }
 
         .ei {
-            width: 40px;
-            height: 40px;
+            width: 56px;
+            height: 56px;
             color: var(--bd2)
         }
 
+        .eh {
+            font: 700 30px/1 inherit;
+            color: var(--tx);
+            letter-spacing: 0.4px;
+            margin-top: 4px
+        }
+
         .et {
-            font: 600 13px/1 inherit;
-            color: var(--tx3)
+            font: 600 13.5px/1.3 inherit;
+            color: var(--tx2)
         }
 
         .ed {
-            font: 11.5px/1.4 inherit;
-            max-width: 240px
+            font: 400 12.5px/1.55 inherit;
+            max-width: 280px;
+            color: var(--tx3)
         }
 
         .ek {
@@ -1597,10 +1605,9 @@
                 <line x1="10.5" y1="10.5" x2="14" y2="14" />
             </svg><input id="sin" placeholder="Filter nodes…" /></button>
         <div class="sep"></div>
-        <button class="tb" id="bres" data-t="Restart / Clear" data-k="R"><svg viewBox="0 0 16 16" fill="none"
-                stroke="currentColor" stroke-width="1.8">
-                <path d="M1 8a7 7 0 1 0 1.5-4.5" />
-                <polyline points="1 1 1 4 4 4" />
+        <button class="tb" id="bres" data-t="Clear" data-k="R"><svg viewBox="0 0 16 16" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 4h10M6 4V3a1 1 0 011-1h2a1 1 0 011 1v1M5 4l.5 8.5a1 1 0 001 .5h3a1 1 0 001-.5L11 4"/>
             </svg></button>
         <button class="tb" id="bhelp" data-t="Shortcuts" data-k="?"><svg viewBox="0 0 16 16" fill="none"
                 stroke="currentColor" stroke-width="1.5">
@@ -1616,29 +1623,24 @@
             <div class="lr2"></div><span class="lt2">Analyzing…</span>
         </div>
         <div id="es">
-            <svg class="ei" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
-                <circle cx="14" cy="14" r="6" />
-                <circle cx="34" cy="14" r="6" />
-                <circle cx="24" cy="36" r="6" />
-                <line x1="18" y1="18" x2="21" y2="31" />
-                <line x1="30" y1="18" x2="27" y2="31" />
-                <line x1="19" y1="12" x2="29" y2="12" />
-            </svg>
-            <div class="et">No call graph generated</div>
-            <div class="ed">Place cursor on a Kotlin function and use the shortcut</div>
+            <!--WELCOME_LOGO-->
+            <div class="eh">Mindmap</div>
+            <div class="ed">Place your cursor on any Kotlin function and press</div>
             <div class="ek">
                 <kbd id="ekAlt">Alt</kbd>
                 <span class="ek-plus">+</span>
                 <kbd>G</kbd>
             </div>
-            <a href="#" class="el"
-                onclick="_send({type:'navigate',url:'https://vishal2376.github.io/mindmap'});return false;">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
-                    style="width:12px;height:12px">
-                    <path d="M10 2h4v4M6 10l8-8M13 14H2V3h5" />
-                </svg>
-                Checkout Website
-            </a>
+            <div class="sm-btn-row" style="margin-top:12px;width:240px">
+                <button class="sm-btn sm-btn-web" onclick="_send({type:'navigate',url:'https://vishal2376.github.io/mindmap'})">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.2-2.5 4.2-2.5 6.5s.5 4.3 2.5 6.5c2-2.2 2.5-4.2 2.5-6.5S10 3.7 8 1.5z"/></svg>
+                    Website
+                </button>
+                <button class="sm-btn sm-btn-report" onclick="_send({type:'navigate',url:'https://github.com/vishal2376/mindmap/issues'})">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".5" fill="currentColor"/></svg>
+                    Report Bug
+                </button>
+            </div>
         </div>
         <div id="gc"></div>
         <div id="tc"></div>
@@ -1662,11 +1664,8 @@
             <div id="li"></div>
         </div>
         <div id="zc" class="h">
-            <button class="zb on" id="bpan" data-t="Pan tool" data-k="H"><svg viewBox="0 0 16 16" fill="currentColor"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path
-                        d="M9 1a1 1 0 011 1v3.586l.293-.293a1 1 0 111.414 1.414L10 8.414V11a3 3 0 01-6 0V7a1 1 0 012 0v1h.5V3a1 1 0 011-1h0a1 1 0 011 1v3H9V2a1 1 0 011-1z"
-                        opacity="0.9" />
+            <button class="zb on" id="bpan" data-t="Pan tool" data-k="H"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 9V4a1 1 0 012 0v4M8 8V3a1 1 0 012 0v5M10 8V4a1 1 0 012 0v5.5M12 9.5V7a1 1 0 012 0v4a5 5 0 01-5 5H8a5 5 0 01-5-5V6a1 1 0 012 0v3"/>
                 </svg></button>
             <button class="zb" id="bsel" data-t="Select tool" data-k="V"><svg viewBox="0 0 16 16" fill="none"
                     stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -1862,7 +1861,7 @@
                     </div>
                     <div class="sr">Select tool<div class="skk"><kbd>V</kbd></div>
                     </div>
-                    <div class="sr">Temp pan<div class="skk"><kbd>Space</kbd><span>hold</span></div>
+                    <div class="sr">Toggle Pan/Select (temp)<div class="skk"><kbd>Space</kbd><span>hold</span></div>
                     </div>
                     <div class="sr">Minimap pan<div class="skk"><kbd>Arrow Keys</kbd><span>(hover minimap)</span></div>
                     </div>
@@ -1896,6 +1895,7 @@
         let sf = '', cv = 'graph', sel = null, drag = false, sOpen = false;
         let panMode = true;
         let _spaceHeld = false;
+        let _spaceOrigMode = null;
         let _dragSel = null;
         let _dimmedNodes = new Set();
         let _hiddenNodes = new Set();
@@ -2015,6 +2015,7 @@
                     h += _sk('Drag', 'Box select');
                     h += _sk('H', 'Pan mode');
                 }
+                h += _sk('Space', 'Toggle mode (hold)');
                 h += _sk('Scroll/Pinch', 'Zoom');
 
                 if (nd) {
@@ -2925,12 +2926,10 @@
         function setPanMode(on, temp) {
             const wasPan = panMode;
             panMode = on;
-            if (!temp) {
-                $bpan.classList.toggle('on', on);
-                $bsel.classList.toggle('on', !on);
-                if (wasPan !== on && wasPan !== undefined) {
-                    toast(on ? 'Pan mode' : 'Select mode', 'var(--tx3)');
-                }
+            $bpan.classList.toggle('on', on);
+            $bsel.classList.toggle('on', !on);
+            if (!temp && wasPan !== on && wasPan !== undefined) {
+                toast(on ? 'Pan mode' : 'Select mode', 'var(--tx3)');
             }
             $gc.classList.toggle('pan-mode', on);
             $gc.classList.toggle('sel-mode', !on);
@@ -3065,7 +3064,13 @@
             if (e.key === 'h' || e.key === 'H') { setPanMode(true); return }
             if (e.key === 'v' || e.key === 'V') { setPanMode(false); return }
 
-            if (e.key === ' ' && !_spaceHeld && cv === 'graph') { e.preventDefault(); _spaceHeld = true; if (!panMode) { $gc.classList.add('pan-mode', 'sel-mode-temp') } return }
+            if (e.key === ' ' && !_spaceHeld && cv === 'graph') {
+                e.preventDefault();
+                _spaceHeld = true;
+                _spaceOrigMode = panMode;
+                setPanMode(!panMode, true);
+                return;
+            }
 
 
             if (e.key === '/') { e.preventDefault(); if (!sOpen) { sOpen = true; $sbn.classList.add('op'); setTimeout(() => $sin.focus(), 250) } else $sin.focus(); return }
@@ -3153,8 +3158,9 @@
         document.addEventListener('keyup', e => {
             if (e.key === ' ' && _spaceHeld) {
                 _spaceHeld = false;
-                if ($gc.classList.contains('sel-mode-temp')) {
-                    $gc.classList.remove('pan-mode', 'sel-mode-temp');
+                if (_spaceOrigMode !== null) {
+                    setPanMode(_spaceOrigMode, true);
+                    _spaceOrigMode = null;
                 }
             }
         });
@@ -3263,7 +3269,7 @@
                 return; // let vis-network handle the node drag
             }
 
-            if (panMode || _spaceHeld) {
+            if (panMode) {
                 // Pan the view
                 e.preventDefault(); e.stopPropagation();
                 _pan = { x: e.clientX, y: e.clientY, pos: net.getViewPosition(), scale: net.getScale() };
