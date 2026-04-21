@@ -1972,7 +1972,15 @@
         // Fast label escape using string replace — avoids DOM allocation used by esc().
         // vis-network multi:'html' mode interprets <b>/<i> tags, so labels must be escaped.
         function escL(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-        function _send(obj) { if (window.jbCefQuery) window.jbCefQuery(JSON.stringify(obj)); }
+        // Mirrors JsBridge.MAX_MESSAGE_SIZE (2048). The Kotlin side already drops
+        // oversize messages, but rejecting here first avoids the silent drop and gives
+        // a console hint if a future UI change sends payloads the bridge can't carry.
+        function _send(obj) {
+            if (!window.jbCefQuery) return;
+            var s = JSON.stringify(obj);
+            if (s.length > 2048) { console.warn('mm: message too large', s.length); return; }
+            window.jbCefQuery(s);
+        }
 
         // ==== TOAST ====
         let _tt;

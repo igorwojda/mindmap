@@ -105,7 +105,11 @@ class MindMapPanel(private val project: Project) : JPanel(BorderLayout()), Dispo
             is JsBridge.MessageEvent.SetDebug -> {
                 debugMode = event.enabled
                 DebugLog.enabled = event.enabled
-                if (event.enabled) DebugLog.log("Debug mode enabled — log file: ${DebugLog.logFilePath}")
+                // Log only the filename — the absolute path includes the OS user home
+                // directory which frequently leaks when users share debug logs on public
+                // issue trackers. Power users can still retrieve the full path via
+                // DebugLog.logFilePath if they need it programmatically.
+                if (event.enabled) DebugLog.log("Debug mode enabled — log file: mindmap-debug.log (in IDE log directory)")
                 else DebugLog.log("Debug mode disabled")
             }
         }

@@ -234,6 +234,11 @@ class JsBridge(
             return
         }
         try {
+            // Gson safety note: [RawJsMessage] is a closed data class with concrete
+            // primitive/String fields only — no type parameters, no Map/Object fields,
+            // no polymorphic dispatch. This closes the common "Gson gadget chain"
+            // deserialization vector. Keep it that way: if a field typed
+            // `Map<String, Any>` or `Any?` is added, re-review the attack surface.
             val msg = gson.fromJson(request, RawJsMessage::class.java)
             val event = parseMessage(msg) ?: return
             onMessage(event)
