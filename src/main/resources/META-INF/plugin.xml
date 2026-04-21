@@ -121,17 +121,14 @@
     <depends>com.intellij.modules.java</depends>
     <depends>org.jetbrains.kotlin</depends>
 
-    <!--
-      Extension point for pluggable per-language call-graph resolution.
-      Every supported language (Kotlin, Java today; Python/Go/PHP/Ruby/… in the future)
-      implements `CallableProvider` and registers itself via this EP. The core plugin
-      code (GraphAnalyzer, MindMapPanel, ShowCallGraphAction) never imports a specific
-      language's PSI type — all dispatch happens through the EP.
-    -->
+    <!-- Pluggable per-language call-graph resolution. Public EP by design:
+         community plugins can add language support. dynamic=true allows
+         install/enable/disable without IDE restart. -->
     <extensionPoints>
         <extensionPoint
             name="callableProvider"
-            interface="com.mindmap.plugin.analysis.CallableProvider"/>
+            interface="com.mindmap.plugin.analysis.CallableProvider"
+            dynamic="true"/>
     </extensionPoints>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">

@@ -24,6 +24,12 @@ import com.intellij.psi.search.GlobalSearchScope
  *                           CallableProvider.implementations(...)
  * ```
  *
+ * # Trust model
+ *
+ * Public EP — third-party plugins may register providers. They gain no capability
+ * beyond what any IntelliJ plugin already has. [GraphAnalyzer.findCallable] wraps
+ * each provider call in try/catch, so a faulty provider can't crash Mindmap.
+ *
  * ## Rules every implementation MUST follow
  *
  * 1. **One hop only.** `outboundTargets` / `inboundCallers` return *direct* callees/callers.
