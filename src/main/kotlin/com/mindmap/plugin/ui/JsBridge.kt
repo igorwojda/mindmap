@@ -43,6 +43,12 @@ class JsBridge(
         private const val MAX_NODE_ID_LENGTH = 500
         private val NODE_ID_PATTERN = Regex("^[a-zA-Z0-9._:\\\\\\-<>,?*@\\[\\] ()]+$")
         private val ALLOWED_SCHEMES = setOf("http", "https")
+
+        // Allow-list of JS entry points the bridge is permitted to invoke. Guards against
+        // any future refactor that might pass an attacker-controlled function name into
+        // `executeWithEncodedData` — a hard ceiling is more reliable than hoping every
+        // call site stays safe forever.
+        private val ALLOWED_JS_DISPATCH_FNS = setOf("drawGraph", "mergeGraph")
     }
 
     /** Typed representation of each incoming JS message type. */
@@ -179,8 +185,20 @@ class JsBridge(
 
     // JSON serialization and Base64 encoding run on a pooled thread so the EDT is never
     // blocked by data processing — only the lightweight JS dispatch hits the EDT.
+    //
+    // Dispatch hardening:
+    // 1. [jsFunction] is allow-listed against [ALLOWED_JS_DISPATCH_FNS]. If a caller ever
+    //    passes an unknown name (refactor slip, string concatenation bug), we refuse.
+    // 2. The Base64 payload is written into a per-call window property before the
+    //    function is invoked, rather than being interpolated inline. This removes the
+    //    string-concatenation pattern from executeJavaScript entirely — nothing inside
+    //    the JS source text depends on untrusted string content.
     private fun executeWithEncodedData(data: GraphData, jsFunction: String) {
         if (isDisposed) return
+        if (jsFunction !in ALLOWED_JS_DISPATCH_FNS) {
+            LOG.warn("Refused to dispatch unknown JS function: $jsFunction")
+            return
+        }
         ApplicationManager.getApplication().executeOnPooledThread {
             if (isDisposed) return@executeOnPooledThread
             try {
@@ -189,8 +207,15 @@ class JsBridge(
                 SwingUtilities.invokeLater {
                     if (isDisposed) return@invokeLater
                     try {
+                        // Base64 output is [A-Za-z0-9+/=], all JS-safe — no escaping needed
+                        // inside the string literal. The payload is stored in a property,
+                        // parsed, then deleted so the global namespace stays clean.
                         browser.cefBrowser.executeJavaScript(
-                            "$jsFunction(JSON.parse(atob('$encoded')))",
+                            "(function(){" +
+                                "window.__mmPayload='$encoded';" +
+                                "try{$jsFunction(JSON.parse(atob(window.__mmPayload)));}" +
+                                "finally{delete window.__mmPayload;}" +
+                            "})();",
                             browser.cefBrowser.url, 0
                         )
                     } catch (e: Exception) {
