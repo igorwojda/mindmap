@@ -112,7 +112,9 @@ class JsBridge(
     }
 
     fun loadHtml() {
-        // Read the 124KB resource on a pooled thread to avoid blocking the EDT at startup.
+        // Read resources on a pooled thread to avoid blocking the EDT at startup.
+        // `graph.html` is ~124KB, `vis-network.min.js` is ~690KB — together ~0.8MB read
+        // once at panel creation. Kept off the EDT to keep the IDE responsive.
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val htmlContent = javaClass.getResource("/webview/graph.html")?.readText()
@@ -120,7 +122,17 @@ class JsBridge(
                 // Inject the action-icon SVG into the welcome screen so the logo stays in sync
                 // with the tool-window icon. Add our ei class so welcome-screen CSS sizes it.
                 val logoWithClass = logoSvg.replaceFirst("<svg", "<svg class=\"ei\"")
-                val finalHtml = htmlContent?.replace("<!--WELCOME_LOGO-->", logoWithClass)
+                // Inject the bundled vis-network library inline. We used to load this from
+                // https://unpkg.com, which meant any CDN compromise or MITM attack could
+                // inject arbitrary JS into the JCEF browser. Bundling the exact pinned
+                // version (v9.1.9) removes that entire supply-chain surface.
+                //
+                // `String.replace(String, String)` in Kotlin is a literal replacement
+                // (no regex), so `$` and `\` in the minified JS source are preserved.
+                val visNetworkJs = javaClass.getResource("/webview/vis-network.min.js")?.readText().orEmpty()
+                val finalHtml = htmlContent
+                    ?.replace("<!--WELCOME_LOGO-->", logoWithClass)
+                    ?.replace("<!--VIS_NETWORK_JS-->", visNetworkJs)
                 SwingUtilities.invokeLater {
                     if (isDisposed) return@invokeLater
                     if (finalHtml != null) {
