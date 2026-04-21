@@ -290,13 +290,37 @@ class JsBridge(
         return nodeId
     }
 
+    /**
+     * Allow-list URL validator for `openUrl` dispatch into `BrowserUtil.browse`.
+     *
+     * Rejects:
+     * - anything outside http/https (blocks `javascript:`, `file:`, `data:`, `jar:`,
+     *   `intent:`, etc. — schemes that would turn a "browse link" into code execution
+     *   or local-file read);
+     * - URLs with no authority/host (blocks `http:` with empty host, relative paths);
+     * - URLs containing userinfo (`http://evil@example.com` — classic phishing trick
+     *   where a victim sees `example.com` in the address bar but credentials are
+     *   sent to `evil`).
+     */
     private fun validateUrl(url: String): String? {
         return try {
             val uri = java.net.URI(url)
-            if (uri.scheme?.lowercase() in ALLOWED_SCHEMES) url
-            else {
-                LOG.warn("Blocked URL with disallowed scheme: ${uri.scheme}")
-                null
+            val scheme = uri.scheme?.lowercase()
+            val host = uri.host
+            when {
+                scheme !in ALLOWED_SCHEMES -> {
+                    LOG.warn("Blocked URL with disallowed scheme: ${uri.scheme}")
+                    null
+                }
+                host.isNullOrBlank() -> {
+                    LOG.warn("Blocked URL with missing host")
+                    null
+                }
+                uri.userInfo != null -> {
+                    LOG.warn("Blocked URL containing userinfo component")
+                    null
+                }
+                else -> url
             }
         } catch (e: Exception) {
             LOG.warn("Invalid URL rejected: $url", e)
