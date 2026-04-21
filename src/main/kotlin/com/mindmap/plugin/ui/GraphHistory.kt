@@ -1,6 +1,9 @@
 package com.mindmap.plugin.ui
 
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.mindmap.plugin.DebugLog
 import com.mindmap.plugin.analysis.CallableFunction
 import com.mindmap.plugin.analysis.GraphData
 
@@ -22,6 +25,10 @@ import com.mindmap.plugin.analysis.GraphData
  * All methods must be called on the EDT.
  */
 class GraphHistory(private val maxSize: Int = 50) {
+
+    companion object {
+        private val LOG = Logger.getInstance(GraphHistory::class.java)
+    }
 
     private val entries = mutableListOf<GraphData>()
     private var index = -1
@@ -94,7 +101,17 @@ class GraphHistory(private val maxSize: Int = 50) {
                         graphData.nodes.find { it.id == nodeId }?.psiElement?.takeIf { it.navigationElement.isValid }
                     }
             }
-        } catch (_: Exception) {
+        } catch (ce: ProcessCanceledException) {
+            // Cancellation must always propagate — it's how the platform tears down
+            // background PSI work. Do not treat as "not found".
+            throw ce
+        } catch (e: Exception) {
+            // Real PSI failures (corrupted indexes, dead references after a reload, etc.)
+            // previously masqueraded as "node not found" due to a blanket catch. Log them
+            // so debug-mode users can report the root cause, then return null so the UI
+            // handler degrades gracefully.
+            LOG.warn("Failed to resolve callable for node id $nodeId", e)
+            DebugLog.error("GraphHistory.findCallable failed for '$nodeId'", e)
             null
         }
     }
