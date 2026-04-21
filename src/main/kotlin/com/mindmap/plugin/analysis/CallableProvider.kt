@@ -22,7 +22,6 @@ import com.intellij.psi.search.GlobalSearchScope
  *   GraphAnalyzer  ───────► CallableProvider.outboundTargets(callable)
  *                           CallableProvider.inboundCallers(callable, scope)
  *                           CallableProvider.implementations(...)
- *                           CallableProvider.superDeclarations(...)
  * ```
  *
  * ## Rules every implementation MUST follow
@@ -129,13 +128,6 @@ interface CallableProvider {
      * the graph then follows the concrete overrides instead of a dead-end declaration.
      */
     fun implementations(project: Project, callable: CallableFunction): List<CallableFunction> = emptyList()
-
-    /**
-     * For an override, returns the super declarations (interface / abstract bases).
-     * Used to *widen* inbound search: callers of the abstract base are also callers
-     * of the override in practice.
-     */
-    fun superDeclarations(callable: CallableFunction): List<CallableFunction> = emptyList()
 
     /**
      * Language-specific test-function detection, honored only when the user enables the

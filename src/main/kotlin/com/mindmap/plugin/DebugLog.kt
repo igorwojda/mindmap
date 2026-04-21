@@ -41,9 +41,4 @@ object DebugLog {
         } catch (_: Exception) { }
     }
 
-    fun clear() {
-        try {
-            if (logFile.exists()) logFile.writeText("")
-        } catch (_: Exception) { }
-    }
 }

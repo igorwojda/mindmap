@@ -123,12 +123,6 @@ class GraphAnalyzer(
         return GraphData(nodes.values.toList(), edges)
     }
 
-    // Used by ShowCallGraphAction so the action never has to know about the EP.
-    fun buildGraphForElement(element: PsiElement, indicator: ProgressIndicator? = null): GraphData? {
-        val callable = findCallable(element) ?: return null
-        return buildGraph(callable, indicator)
-    }
-
     /**
      * Walks every registered provider asking each to find the nearest enclosing callable
      * for [element]. First non-null wins — providers are expected to be mutually
