@@ -10,6 +10,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.wm.ToolWindowManager
+import com.mindmap.plugin.Constants
 import com.mindmap.plugin.DebugLog
 import com.mindmap.plugin.analysis.CallableFunction
 import com.mindmap.plugin.analysis.GraphAnalyzer
@@ -56,7 +57,7 @@ class ShowCallGraphAction : AnAction() {
                 GraphAnalyzer(project).findCallable(element)
             } ?: return
 
-            val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Mindmap") ?: return
+            val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(Constants.TOOL_WINDOW_ID) ?: return
             toolWindow.show()
 
             val displayName = callable.name ?: "function"
