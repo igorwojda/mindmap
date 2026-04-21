@@ -43,11 +43,13 @@
     ><![CDATA[
     <h3>1.0.5</h3>
     <ul>
-        <li><b>Java support</b> — Alt+G now works on Java methods; graphs render with Java as the root (#2)</li>
-        <li><b>Cross-language edges (Java ↔ Kotlin)</b> — Kotlin functions calling Java methods and Java methods calling Kotlin functions now appear as connected nodes in both directions (#2)</li>
-        <li><b>Java inbound callers</b> — ReferencesSearch finds Java callers of Kotlin functions via light-method bridging, and vice versa</li>
-        <li><b>JUnit test detection for Java</b> — `@Test`, `@ParameterizedTest`, `@RepeatedTest` (Jupiter and JUnit 4), TestNG `@Test`, and `kotlin.test.Test` annotations are filtered when "exclude tests" is enabled</li>
-        <li><b>Extensible provider architecture</b> — new languages can be onboarded by implementing a single `CallableProvider` extension without touching the UI, history, or graph orchestrator</li>
+        <li><b>Java support</b> — Alt+G now works on Java methods. Graphs render with Java as the root, callers and callees resolve just like Kotlin. (#2)</li>
+        <li><b>Cross-language edges (Java ↔ Kotlin)</b> — Kotlin calling Java and Java calling Kotlin both appear as connected nodes in the graph. Inbound search surfaces callers from either language.</li>
+        <li><b>JUnit test filtering for Java</b> — <code>@Test</code>, <code>@ParameterizedTest</code>, <code>@RepeatedTest</code> (JUnit 4 and Jupiter), TestNG <code>@Test</code>, and <code>kotlin.test.Test</code> are filtered when "Exclude test functions" is on.</li>
+        <li><b>Welcome screen</b> — hint updated to "Place your cursor on any Kotlin / Java function".</li>
+        <li><b>Extensible provider architecture</b> — new languages can be added by implementing a single extension; no changes to the UI, history, or graph orchestrator.</li>
+        <li><b>Hardening</b> — tighter URL validation for external links and a locked-down Content-Security-Policy for the tool-window frame. The visualization library is now bundled with the plugin instead of fetched over the network at startup.</li>
+        <li><b>Internal cleanup</b> — removed several unused methods, narrowed an over-broad exception catch so cancellation and PSI failures are no longer silently swallowed, and tightened a few small code paths. No user-visible behavior change.</li>
     </ul>
 
     <h3>1.0.4</h3>
@@ -119,17 +121,14 @@
     <depends>com.intellij.modules.java</depends>
     <depends>org.jetbrains.kotlin</depends>
 
-    <!--
-      Extension point for pluggable per-language call-graph resolution.
-      Every supported language (Kotlin, Java today; Python/Go/PHP/Ruby/… in the future)
-      implements `CallableProvider` and registers itself via this EP. The core plugin
-      code (GraphAnalyzer, MindMapPanel, ShowCallGraphAction) never imports a specific
-      language's PSI type — all dispatch happens through the EP.
-    -->
+    <!-- Pluggable per-language call-graph resolution. Public EP by design:
+         community plugins can add language support. dynamic=true allows
+         install/enable/disable without IDE restart. -->
     <extensionPoints>
         <extensionPoint
             name="callableProvider"
-            interface="com.mindmap.plugin.analysis.CallableProvider"/>
+            interface="com.mindmap.plugin.analysis.CallableProvider"
+            dynamic="true"/>
     </extensionPoints>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">

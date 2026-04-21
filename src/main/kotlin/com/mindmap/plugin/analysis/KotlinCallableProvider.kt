@@ -194,24 +194,6 @@ class KotlinCallableProvider : CallableProvider {
         }
     }
 
-    override fun superDeclarations(callable: CallableFunction): List<CallableFunction> {
-        val fn = (callable as? CallableFunction.Kotlin)?.fn ?: return emptyList()
-        return try {
-            fn.toLightMethods().flatMap { lm ->
-                SuperMethodsSearch.search(lm, null, true, false).findAll()
-                    .mapNotNull { superResult ->
-                        when (val nav = superResult.method.navigationElement) {
-                            is KtNamedFunction -> CallableFunction.Kotlin(nav)
-                            is PsiMethod -> CallableFunction.Java(nav)
-                            else -> null
-                        }
-                    }
-            }.distinct()
-        } catch (_: Exception) {
-            emptyList()
-        }
-    }
-
     /**
      * Matches the common JUnit shortcuts by annotation short-name — covers `@Test`
      * from JUnit 4/5 and `@ParameterizedTest` / `@RepeatedTest` from Jupiter. Uses

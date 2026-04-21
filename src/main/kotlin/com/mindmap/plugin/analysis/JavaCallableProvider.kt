@@ -169,23 +169,6 @@ class JavaCallableProvider : CallableProvider {
         }
     }
 
-    override fun superDeclarations(callable: CallableFunction): List<CallableFunction> {
-        val method = (callable as? CallableFunction.Java)?.m ?: return emptyList()
-        return try {
-            SuperMethodsSearch.search(method, null, true, false).findAll()
-                .mapNotNull { superResult ->
-                    when (val nav = superResult.method.navigationElement) {
-                        is KtNamedFunction -> CallableFunction.Kotlin(nav)
-                        is PsiMethod -> CallableFunction.Java(nav)
-                        else -> null
-                    }
-                }
-                .distinct()
-        } catch (_: Exception) {
-            emptyList()
-        }
-    }
-
     /**
      * Detection by annotation FQN. We iterate the method's annotations and compare
      * against a small allow-list of known test-framework annotation classes.

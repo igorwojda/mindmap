@@ -9,7 +9,9 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.wm.ToolWindowManager
+import com.mindmap.plugin.Constants
 import com.mindmap.plugin.DebugLog
 import com.mindmap.plugin.analysis.CallableFunction
 import com.mindmap.plugin.analysis.GraphAnalyzer
@@ -56,7 +58,7 @@ class ShowCallGraphAction : AnAction() {
                 GraphAnalyzer(project).findCallable(element)
             } ?: return
 
-            val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Mindmap") ?: return
+            val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(Constants.TOOL_WINDOW_ID) ?: return
             toolWindow.show()
 
             val displayName = callable.name ?: "function"
@@ -102,8 +104,11 @@ class ShowCallGraphAction : AnAction() {
             val psiFile = e.getData(CommonDataKeys.PSI_FILE)
             val editor = e.getData(CommonDataKeys.EDITOR)
 
+            // Skip PSI probe during indexing — keystroke-rate provider iteration
+            // would stress the indexer and add no user value.
             var visible = false
-            if (project != null && psiFile != null && editor != null) {
+            if (project != null && !DumbService.getInstance(project).isDumb
+                && psiFile != null && editor != null) {
                 val offset = editor.caretModel.offset
                 val element = psiFile.findElementAt(offset)
                 if (element != null) {

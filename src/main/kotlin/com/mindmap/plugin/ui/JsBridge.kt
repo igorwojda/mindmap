@@ -43,6 +43,12 @@ class JsBridge(
         private const val MAX_NODE_ID_LENGTH = 500
         private val NODE_ID_PATTERN = Regex("^[a-zA-Z0-9._:\\\\\\-<>,?*@\\[\\] ()]+$")
         private val ALLOWED_SCHEMES = setOf("http", "https")
+
+        // Allow-list of JS entry points the bridge is permitted to invoke. Guards against
+        // any future refactor that might pass an attacker-controlled function name into
+        // `executeWithEncodedData` — a hard ceiling is more reliable than hoping every
+        // call site stays safe forever.
+        private val ALLOWED_JS_DISPATCH_FNS = setOf("drawGraph", "mergeGraph")
     }
 
     /** Typed representation of each incoming JS message type. */
@@ -112,7 +118,9 @@ class JsBridge(
     }
 
     fun loadHtml() {
-        // Read the 124KB resource on a pooled thread to avoid blocking the EDT at startup.
+        // Read resources on a pooled thread to avoid blocking the EDT at startup.
+        // `graph.html` is ~124KB, `vis-network.min.js` is ~690KB — together ~0.8MB read
+        // once at panel creation. Kept off the EDT to keep the IDE responsive.
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val htmlContent = javaClass.getResource("/webview/graph.html")?.readText()
@@ -120,7 +128,17 @@ class JsBridge(
                 // Inject the action-icon SVG into the welcome screen so the logo stays in sync
                 // with the tool-window icon. Add our ei class so welcome-screen CSS sizes it.
                 val logoWithClass = logoSvg.replaceFirst("<svg", "<svg class=\"ei\"")
-                val finalHtml = htmlContent?.replace("<!--WELCOME_LOGO-->", logoWithClass)
+                // Inject the bundled vis-network library inline. We used to load this from
+                // https://unpkg.com, which meant any CDN compromise or MITM attack could
+                // inject arbitrary JS into the JCEF browser. Bundling the exact pinned
+                // version (v9.1.9) removes that entire supply-chain surface.
+                //
+                // `String.replace(String, String)` in Kotlin is a literal replacement
+                // (no regex), so `$` and `\` in the minified JS source are preserved.
+                val visNetworkJs = javaClass.getResource("/webview/vis-network.min.js")?.readText().orEmpty()
+                val finalHtml = htmlContent
+                    ?.replace("<!--WELCOME_LOGO-->", logoWithClass)
+                    ?.replace("<!--VIS_NETWORK_JS-->", visNetworkJs)
                 SwingUtilities.invokeLater {
                     if (isDisposed) return@invokeLater
                     if (finalHtml != null) {
@@ -167,8 +185,20 @@ class JsBridge(
 
     // JSON serialization and Base64 encoding run on a pooled thread so the EDT is never
     // blocked by data processing — only the lightweight JS dispatch hits the EDT.
+    //
+    // Dispatch hardening:
+    // 1. [jsFunction] is allow-listed against [ALLOWED_JS_DISPATCH_FNS]. If a caller ever
+    //    passes an unknown name (refactor slip, string concatenation bug), we refuse.
+    // 2. The Base64 payload is written into a per-call window property before the
+    //    function is invoked, rather than being interpolated inline. This removes the
+    //    string-concatenation pattern from executeJavaScript entirely — nothing inside
+    //    the JS source text depends on untrusted string content.
     private fun executeWithEncodedData(data: GraphData, jsFunction: String) {
         if (isDisposed) return
+        if (jsFunction !in ALLOWED_JS_DISPATCH_FNS) {
+            LOG.warn("Refused to dispatch unknown JS function: $jsFunction")
+            return
+        }
         ApplicationManager.getApplication().executeOnPooledThread {
             if (isDisposed) return@executeOnPooledThread
             try {
@@ -177,8 +207,15 @@ class JsBridge(
                 SwingUtilities.invokeLater {
                     if (isDisposed) return@invokeLater
                     try {
+                        // Base64 output is [A-Za-z0-9+/=], all JS-safe — no escaping needed
+                        // inside the string literal. The payload is stored in a property,
+                        // parsed, then deleted so the global namespace stays clean.
                         browser.cefBrowser.executeJavaScript(
-                            "$jsFunction(JSON.parse(atob('$encoded')))",
+                            "(function(){" +
+                                "window.__mmPayload='$encoded';" +
+                                "try{$jsFunction(JSON.parse(atob(window.__mmPayload)));}" +
+                                "finally{delete window.__mmPayload;}" +
+                            "})();",
                             browser.cefBrowser.url, 0
                         )
                     } catch (e: Exception) {
@@ -197,6 +234,11 @@ class JsBridge(
             return
         }
         try {
+            // Gson safety note: [RawJsMessage] is a closed data class with concrete
+            // primitive/String fields only — no type parameters, no Map/Object fields,
+            // no polymorphic dispatch. This closes the common "Gson gadget chain"
+            // deserialization vector. Keep it that way: if a field typed
+            // `Map<String, Any>` or `Any?` is added, re-review the attack surface.
             val msg = gson.fromJson(request, RawJsMessage::class.java)
             val event = parseMessage(msg) ?: return
             onMessage(event)
@@ -253,13 +295,37 @@ class JsBridge(
         return nodeId
     }
 
+    /**
+     * Allow-list URL validator for `openUrl` dispatch into `BrowserUtil.browse`.
+     *
+     * Rejects:
+     * - anything outside http/https (blocks `javascript:`, `file:`, `data:`, `jar:`,
+     *   `intent:`, etc. — schemes that would turn a "browse link" into code execution
+     *   or local-file read);
+     * - URLs with no authority/host (blocks `http:` with empty host, relative paths);
+     * - URLs containing userinfo (`http://evil@example.com` — classic phishing trick
+     *   where a victim sees `example.com` in the address bar but credentials are
+     *   sent to `evil`).
+     */
     private fun validateUrl(url: String): String? {
         return try {
             val uri = java.net.URI(url)
-            if (uri.scheme?.lowercase() in ALLOWED_SCHEMES) url
-            else {
-                LOG.warn("Blocked URL with disallowed scheme: ${uri.scheme}")
-                null
+            val scheme = uri.scheme?.lowercase()
+            val host = uri.host
+            when {
+                scheme !in ALLOWED_SCHEMES -> {
+                    LOG.warn("Blocked URL with disallowed scheme: ${uri.scheme}")
+                    null
+                }
+                host.isNullOrBlank() -> {
+                    LOG.warn("Blocked URL with missing host")
+                    null
+                }
+                uri.userInfo != null -> {
+                    LOG.warn("Blocked URL containing userinfo component")
+                    null
+                }
+                else -> url
             }
         } catch (e: Exception) {
             LOG.warn("Invalid URL rejected: $url", e)

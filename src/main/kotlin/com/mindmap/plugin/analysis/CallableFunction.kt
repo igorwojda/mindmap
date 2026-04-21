@@ -71,6 +71,24 @@ sealed interface CallableFunction {
     /** Approximate line count of the body; used as a size hint in the UI. */
     val lineCount: Int
 
+    /**
+     * Parameter-type signature used as an overload disambiguator inside
+     * [CallGraphNode.id]. Comma-joined, no names, types only — e.g. `"Int,String"`.
+     * Empty string is valid for zero-parameter callables.
+     *
+     * Lives on [CallableFunction] rather than in `GraphAnalyzer` so the orchestrator
+     * stays language-neutral: adding a new language = one new sealed case + one new
+     * implementation here, no `when` branch added elsewhere.
+     */
+    val parameterSignature: String
+
+    /**
+     * Full human-readable signature shown in the UI tooltip, e.g.
+     * `"foo(a: Int, b: String): Boolean"`. Language-specific formatting (colon-separated
+     * type annotations for Kotlin, space-separated for Java) is handled per case.
+     */
+    val signatureDisplay: String
+
     /** Kotlin wrapper. Compiled unconditionally — Kotlin module is a hard dep. */
     data class Kotlin(val fn: KtNamedFunction) : CallableFunction {
         override val name: String? get() = fn.name
@@ -80,6 +98,16 @@ sealed interface CallableFunction {
         override val navigationElement: PsiElement get() = fn
         override val languageId: String get() = "kotlin"
         override val lineCount: Int get() = fn.text?.lines()?.size ?: 0
+        override val parameterSignature: String
+            get() = fn.valueParameters.joinToString(",") { it.typeReference?.text ?: "Any" }
+        override val signatureDisplay: String
+            get() {
+                val params = fn.valueParameters.joinToString(", ") { p ->
+                    "${p.name ?: "_"}: ${p.typeReference?.text ?: "Any"}"
+                }
+                val ret = fn.typeReference?.text?.let { ": $it" } ?: ""
+                return "${fn.name}($params)$ret"
+            }
     }
 
     /**
@@ -96,5 +124,15 @@ sealed interface CallableFunction {
         override val navigationElement: PsiElement get() = m
         override val languageId: String get() = "java"
         override val lineCount: Int get() = m.text?.lines()?.size ?: 0
+        override val parameterSignature: String
+            get() = m.parameterList.parameters.joinToString(",") { it.type.presentableText }
+        override val signatureDisplay: String
+            get() {
+                val params = m.parameterList.parameters.joinToString(", ") { p ->
+                    "${p.name ?: "_"}: ${p.type.presentableText}"
+                }
+                val ret = ": ${m.returnType?.presentableText ?: "void"}"
+                return "${m.name}($params)$ret"
+            }
     }
 }
