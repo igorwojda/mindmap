@@ -41,25 +41,15 @@
 
     <change-notes
     ><![CDATA[
-    <h3>1.0.6</h3>
-    <ul>
-        <li><b>Security: bundled vis-network</b> — the visualization library is now shipped with the plugin instead of fetched from a CDN on startup. Eliminates the supply-chain risk of a compromised CDN loading arbitrary JavaScript into the tool window.</li>
-        <li><b>Security: hardened Content-Security-Policy</b> — locked down to deny every external origin and every non-essential directive (<code>connect-src</code>, <code>font-src</code>, <code>frame-src</code>, <code>object-src</code>, <code>base-uri</code>, <code>form-action</code> all set to <code>'none'</code>).</li>
-        <li><b>Security: allow-listed JS dispatch</b> — the Kotlin→browser bridge now refuses to invoke any JS function name outside a fixed allow-list, and the graph payload no longer flows through inline string interpolation.</li>
-        <li><b>Security: stricter URL validation</b> — external-link navigation rejects userinfo components (<code>http://evil@target.com</code> phishing), hostless URLs, and every non-http(s) scheme.</li>
-        <li><b>Security: defense-in-depth label rendering</b> — vis-network default label mode switched from <code>html</code> to <code>text</code> so any future un-escaped label cannot become XSS.</li>
-        <li><b>Privacy: debug log path</b> — "Debug mode enabled" message no longer includes the OS home-directory path, reducing accidental disclosure when users share logs on issue trackers.</li>
-        <li><b>Refactor: language-neutral orchestrator</b> — <code>GraphAnalyzer</code> no longer has any language-specific <code>when</code> branches; parameter/signature formatting is a per-language <code>CallableFunction</code> member, so onboarding a new language requires zero orchestrator changes.</li>
-        <li><b>Cleanup</b> — removed several unused API methods (<code>buildGraphForElement</code>, <code>superDeclarations</code>, <code>DebugLog.clear</code>); narrowed an over-broad exception catch in <code>GraphHistory</code> so cancellation and real PSI failures are no longer silently swallowed; extracted the tool-window id to a shared constant.</li>
-    </ul>
-
     <h3>1.0.5</h3>
     <ul>
-        <li><b>Java support</b> — Alt+G now works on Java methods; graphs render with Java as the root (#2)</li>
-        <li><b>Cross-language edges (Java ↔ Kotlin)</b> — Kotlin functions calling Java methods and Java methods calling Kotlin functions now appear as connected nodes in both directions (#2)</li>
-        <li><b>Java inbound callers</b> — ReferencesSearch finds Java callers of Kotlin functions via light-method bridging, and vice versa</li>
-        <li><b>JUnit test detection for Java</b> — `@Test`, `@ParameterizedTest`, `@RepeatedTest` (Jupiter and JUnit 4), TestNG `@Test`, and `kotlin.test.Test` annotations are filtered when "exclude tests" is enabled</li>
-        <li><b>Extensible provider architecture</b> — new languages can be onboarded by implementing a single `CallableProvider` extension without touching the UI, history, or graph orchestrator</li>
+        <li><b>Java support</b> — Alt+G now works on Java methods. Graphs render with Java as the root, callers and callees resolve just like Kotlin. (#2)</li>
+        <li><b>Cross-language edges (Java ↔ Kotlin)</b> — Kotlin calling Java and Java calling Kotlin both appear as connected nodes in the graph. Inbound search surfaces callers from either language.</li>
+        <li><b>JUnit test filtering for Java</b> — <code>@Test</code>, <code>@ParameterizedTest</code>, <code>@RepeatedTest</code> (JUnit 4 and Jupiter), TestNG <code>@Test</code>, and <code>kotlin.test.Test</code> are filtered when "Exclude test functions" is on.</li>
+        <li><b>Welcome screen</b> — hint updated to "Place your cursor on any Kotlin / Java function".</li>
+        <li><b>Extensible provider architecture</b> — new languages can be added by implementing a single extension; no changes to the UI, history, or graph orchestrator.</li>
+        <li><b>Hardening</b> — tighter URL validation for external links and a locked-down Content-Security-Policy for the tool-window frame. The visualization library is now bundled with the plugin instead of fetched over the network at startup.</li>
+        <li><b>Internal cleanup</b> — removed several unused methods, narrowed an over-broad exception catch so cancellation and PSI failures are no longer silently swallowed, and tightened a few small code paths. No user-visible behavior change.</li>
     </ul>
 
     <h3>1.0.4</h3>
