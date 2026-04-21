@@ -41,6 +41,18 @@
 
     <change-notes
     ><![CDATA[
+    <h3>1.0.6</h3>
+    <ul>
+        <li><b>Security: bundled vis-network</b> — the visualization library is now shipped with the plugin instead of fetched from a CDN on startup. Eliminates the supply-chain risk of a compromised CDN loading arbitrary JavaScript into the tool window.</li>
+        <li><b>Security: hardened Content-Security-Policy</b> — locked down to deny every external origin and every non-essential directive (<code>connect-src</code>, <code>font-src</code>, <code>frame-src</code>, <code>object-src</code>, <code>base-uri</code>, <code>form-action</code> all set to <code>'none'</code>).</li>
+        <li><b>Security: allow-listed JS dispatch</b> — the Kotlin→browser bridge now refuses to invoke any JS function name outside a fixed allow-list, and the graph payload no longer flows through inline string interpolation.</li>
+        <li><b>Security: stricter URL validation</b> — external-link navigation rejects userinfo components (<code>http://evil@target.com</code> phishing), hostless URLs, and every non-http(s) scheme.</li>
+        <li><b>Security: defense-in-depth label rendering</b> — vis-network default label mode switched from <code>html</code> to <code>text</code> so any future un-escaped label cannot become XSS.</li>
+        <li><b>Privacy: debug log path</b> — "Debug mode enabled" message no longer includes the OS home-directory path, reducing accidental disclosure when users share logs on issue trackers.</li>
+        <li><b>Refactor: language-neutral orchestrator</b> — <code>GraphAnalyzer</code> no longer has any language-specific <code>when</code> branches; parameter/signature formatting is a per-language <code>CallableFunction</code> member, so onboarding a new language requires zero orchestrator changes.</li>
+        <li><b>Cleanup</b> — removed several unused API methods (<code>buildGraphForElement</code>, <code>superDeclarations</code>, <code>DebugLog.clear</code>); narrowed an over-broad exception catch in <code>GraphHistory</code> so cancellation and real PSI failures are no longer silently swallowed; extracted the tool-window id to a shared constant.</li>
+    </ul>
+
     <h3>1.0.5</h3>
     <ul>
         <li><b>Java support</b> — Alt+G now works on Java methods; graphs render with Java as the root (#2)</li>
