@@ -4,6 +4,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiMethod
 import org.jetbrains.kotlin.psi.KtNamedFunction
+import org.jetbrains.kotlin.psi.psiUtil.containingClassOrObject
 
 /**
  * Language-neutral wrapper around a callable PSI element (a function / method).
@@ -72,6 +73,15 @@ sealed interface CallableFunction {
     val lineCount: Int
 
     /**
+     * Short class-qualified display name (e.g. `"MyClass.foo"`) or just [name] for
+     * top-level / unenclosed callables. Used by the frontend when the user enables the
+     * "Show class prefix" label toggle. Different from [fqName] which carries the full
+     * package path — qualifiedName keeps labels readable while disambiguating same-named
+     * methods across classes.
+     */
+    val qualifiedName: String?
+
+    /**
      * Parameter-type signature used as an overload disambiguator inside
      * [CallGraphNode.id]. Comma-joined, no names, types only — e.g. `"Int,String"`.
      * Empty string is valid for zero-parameter callables.
@@ -98,6 +108,12 @@ sealed interface CallableFunction {
         override val navigationElement: PsiElement get() = fn
         override val languageId: String get() = "kotlin"
         override val lineCount: Int get() = fn.text?.lines()?.size ?: 0
+        override val qualifiedName: String?
+            get() {
+                val n = fn.name ?: return null
+                val cls = fn.containingClassOrObject?.name
+                return if (cls != null) "$cls.$n" else n
+            }
         override val parameterSignature: String
             get() = fn.valueParameters.joinToString(",") { it.typeReference?.text ?: "Any" }
         override val signatureDisplay: String
@@ -124,6 +140,12 @@ sealed interface CallableFunction {
         override val navigationElement: PsiElement get() = m
         override val languageId: String get() = "java"
         override val lineCount: Int get() = m.text?.lines()?.size ?: 0
+        override val qualifiedName: String?
+            get() {
+                val n = m.name
+                val cls = m.containingClass?.name
+                return if (cls != null) "$cls.$n" else n
+            }
         override val parameterSignature: String
             get() = m.parameterList.parameters.joinToString(",") { it.type.presentableText }
         override val signatureDisplay: String

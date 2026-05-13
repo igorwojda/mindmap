@@ -26,7 +26,8 @@ class PluginSettings : PersistentStateComponent<PluginSettings.State> {
         var retraceOutboundDepth: Int = 1,
         var retraceInboundDepth: Int = 1,
         var excludeTests: Boolean = true,
-        var debugMode: Boolean = false
+        var debugMode: Boolean = false,
+        var showClassPrefix: Boolean = false
     )
 
     private var state = State()
@@ -57,6 +58,10 @@ class PluginSettings : PersistentStateComponent<PluginSettings.State> {
     var debugMode: Boolean
         get() = state.debugMode
         set(v) { state.debugMode = v }
+
+    var showClassPrefix: Boolean
+        get() = state.showClassPrefix
+        set(v) { state.showClassPrefix = v }
 
     companion object {
         fun getInstance(project: Project): PluginSettings = project.service()
