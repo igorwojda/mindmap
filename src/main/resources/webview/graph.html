@@ -2631,10 +2631,41 @@
                 net.setOptions({ layout: { hierarchical: { enabled: false } }, interaction: { dragNodes: !panMode } });
                 if (hasSaved) {
                     const updates = [];
+                    const newNodes = [];
                     nds.forEach(n => {
                         if (savedPositions[n.id]) updates.push({ id: n.id, x: savedPositions[n.id].x, y: savedPositions[n.id].y });
+                        else newNodes.push(n);
                     });
                     if (updates.length) nds.update(updates);
+                    // Issue #17: trace merge adds new callers/callees. Place INBOUND
+                    // (callers) to the LEFT of the focus node and OUTBOUND (callees) to
+                    // the RIGHT, grouped by depth, instead of leaving them at whatever
+                    // position the hierarchical pass left them in (which may overlap
+                    // with the existing graph because levels are recomputed for the
+                    // merged set).
+                    if (newNodes.length && focusId && savedPositions[focusId]) {
+                        const fp = savedPositions[focusId];
+                        const COL = 220, ROW = 80;
+                        const buckets = { INBOUND: {}, OUTBOUND: {} };
+                        newNodes.forEach(n => {
+                            const d = n._data || {};
+                            const t = d.type === 'INBOUND' ? 'INBOUND' : 'OUTBOUND';
+                            const dp = d.depth || 1;
+                            (buckets[t][dp] = buckets[t][dp] || []).push(n.id);
+                        });
+                        const placements = [];
+                        ['INBOUND', 'OUTBOUND'].forEach(t => {
+                            Object.entries(buckets[t]).forEach(([dp, ids]) => {
+                                const depth = +dp;
+                                const x = fp.x + (t === 'INBOUND' ? -depth * COL : depth * COL);
+                                ids.forEach((id, i) => {
+                                    const y = fp.y + (i - (ids.length - 1) / 2) * ROW;
+                                    placements.push({ id, x, y });
+                                });
+                            });
+                        });
+                        if (placements.length) nds.update(placements);
+                    }
                 } else {
                     _minimizeCrossings();
                 }
