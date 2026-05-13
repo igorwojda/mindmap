@@ -80,8 +80,10 @@ class JsBridge(
      * function into the page on every load. The bridge code must be injected in [onLoadEnd]
      * because the page context is not available before that point.
      * [onReady] is called once the page is ready and a pending graph is waiting to be drawn.
+     * [initialSettings] is called immediately after bridge install so the panel can push
+     * persisted settings (slider values, toggles) into the JS UI.
      */
-    fun setup(onReady: () -> Unit) {
+    fun setup(onReady: () -> Unit, initialSettings: (() -> Unit)? = null) {
         jsQuery.addHandler { request ->
             try {
                 handleRawMessage(request)
@@ -102,6 +104,7 @@ class JsBridge(
                     SwingUtilities.invokeLater {
                         if (isDisposed) return@invokeLater
                         isBrowserReady = true
+                        initialSettings?.invoke()
                         pendingAction?.invoke()
                         pendingAction = null
                         pendingData?.let {
@@ -166,6 +169,30 @@ class JsBridge(
     /** Preserves existing node positions (used by trace merge). */
     fun sendMergedGraph(data: GraphData) {
         executeWithEncodedData(data, "mergeGraph")
+    }
+
+    /**
+     * Pushes persisted plugin settings into the JS UI so sliders/toggles reflect the
+     * stored state instead of the hardcoded HTML defaults. Values are integers/booleans
+     * only — no untrusted strings interpolated.
+     */
+    fun sendInitialSettings(
+        outbound: Int, inbound: Int,
+        retraceOutbound: Int, retraceInbound: Int,
+        excludeTests: Boolean, debug: Boolean
+    ) {
+        if (isDisposed) return
+        SwingUtilities.invokeLater {
+            if (isDisposed) return@invokeLater
+            try {
+                browser.cefBrowser.executeJavaScript(
+                    "applyInitialSettings($outbound, $inbound, $retraceOutbound, $retraceInbound, $excludeTests, $debug)",
+                    browser.cefBrowser.url, 0
+                )
+            } catch (e: Exception) {
+                LOG.error("Failed to send initial settings", e); DebugLog.error("Failed to send initial settings", e)
+            }
+        }
     }
 
     fun sendHistoryState(canBack: Boolean, canForward: Boolean, position: Int, total: Int) {

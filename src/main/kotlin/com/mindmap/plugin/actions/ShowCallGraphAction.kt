@@ -15,6 +15,7 @@ import com.mindmap.plugin.Constants
 import com.mindmap.plugin.DebugLog
 import com.mindmap.plugin.analysis.CallableFunction
 import com.mindmap.plugin.analysis.GraphAnalyzer
+import com.mindmap.plugin.settings.PluginSettings
 import com.mindmap.plugin.ui.MindMapPanel
 import javax.swing.SwingUtilities
 
@@ -70,7 +71,14 @@ class ShowCallGraphAction : AnAction() {
                         indicator.isIndeterminate = true
                         indicator.text = "Analyzing call graph (${callable.languageId})..."
 
-                        val graphData = GraphAnalyzer(project).buildGraph(callable, indicator)
+                        val s = PluginSettings.getInstance(project)
+                        val graphData = GraphAnalyzer(
+                            project,
+                            maxOutboundDepth = s.outboundDepth,
+                            maxInboundDepth = s.inboundDepth,
+                            debugMode = s.debugMode,
+                            excludeTests = s.excludeTests
+                        ).buildGraph(callable, indicator)
 
                         // UI and history mutations must happen on the EDT.
                         SwingUtilities.invokeLater {
