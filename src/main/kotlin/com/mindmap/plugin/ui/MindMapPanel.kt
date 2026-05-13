@@ -19,6 +19,7 @@ import com.mindmap.plugin.analysis.GraphAnalyzer
 import com.mindmap.plugin.analysis.GraphData
 import com.mindmap.plugin.analysis.NodeType
 import com.mindmap.plugin.analysis.merge
+import com.mindmap.plugin.settings.PluginSettings
 import java.awt.BorderLayout
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
@@ -47,19 +48,27 @@ class MindMapPanel(private val project: Project) : JPanel(BorderLayout()), Dispo
     private val history = GraphHistory()
     @Volatile private var isDisposed = false
     @Volatile private var currentGraphData: GraphData? = null
-    @Volatile private var debugMode = false
 
-    // A single volatile reference to an immutable snapshot ensures background threads always
-    // read outbound+inbound as a consistent pair. Separate @Volatile fields would let a
-    // background thread read a new outbound value alongside a stale inbound value.
-    private data class DepthSettings(
-        val outbound: Int = 3,
-        val inbound: Int = 2,
-        val retraceOutbound: Int = 1,
-        val retraceInbound: Int = 1,
-        val excludeTests: Boolean = true
+    private val settings = PluginSettings.getInstance(project)
+    private val debugMode: Boolean get() = settings.debugMode
+
+    // Snapshot of mutable settings, taken atomically before each background analysis so a
+    // mid-flight slider change cannot leave the analyzer with an inconsistent
+    // outbound/inbound pair.
+    private data class DepthSnapshot(
+        val outbound: Int,
+        val inbound: Int,
+        val retraceOutbound: Int,
+        val retraceInbound: Int,
+        val excludeTests: Boolean
     )
-    @Volatile private var depths = DepthSettings()
+    private fun snapshot() = DepthSnapshot(
+        settings.outboundDepth,
+        settings.inboundDepth,
+        settings.retraceOutboundDepth,
+        settings.retraceInboundDepth,
+        settings.excludeTests
+    )
 
     companion object {
         private val LOG = Logger.getInstance(MindMapPanel::class.java)
@@ -69,7 +78,19 @@ class MindMapPanel(private val project: Project) : JPanel(BorderLayout()), Dispo
 
     init {
         add(browser.component, BorderLayout.CENTER)
-        bridge.setup { updateGraph(currentGraphData ?: return@setup) }
+        bridge.setup(
+            onReady = { updateGraph(currentGraphData ?: return@setup) },
+            initialSettings = {
+                bridge.sendInitialSettings(
+                    outbound = settings.outboundDepth,
+                    inbound = settings.inboundDepth,
+                    retraceOutbound = settings.retraceOutboundDepth,
+                    retraceInbound = settings.retraceInboundDepth,
+                    excludeTests = settings.excludeTests,
+                    debug = settings.debugMode
+                )
+            }
+        )
         bridge.loadHtml()
     }
 
@@ -99,11 +120,11 @@ class MindMapPanel(private val project: Project) : JPanel(BorderLayout()), Dispo
             is JsBridge.MessageEvent.HistoryBack -> SwingUtilities.invokeLater { if (!isDisposed) handleHistoryBack() }
             is JsBridge.MessageEvent.HistoryForward -> SwingUtilities.invokeLater { if (!isDisposed) handleHistoryForward() }
             is JsBridge.MessageEvent.Restart     -> SwingUtilities.invokeLater { if (!isDisposed) handleRestart() }
-            is JsBridge.MessageEvent.SetDepth    -> depths = depths.copy(outbound = event.outbound, inbound = event.inbound)
-            is JsBridge.MessageEvent.SetRetraceDepth -> depths = depths.copy(retraceOutbound = event.outbound, retraceInbound = event.inbound)
-            is JsBridge.MessageEvent.SetExcludeTests -> depths = depths.copy(excludeTests = event.enabled)
+            is JsBridge.MessageEvent.SetDepth    -> { settings.outboundDepth = event.outbound; settings.inboundDepth = event.inbound }
+            is JsBridge.MessageEvent.SetRetraceDepth -> { settings.retraceOutboundDepth = event.outbound; settings.retraceInboundDepth = event.inbound }
+            is JsBridge.MessageEvent.SetExcludeTests -> settings.excludeTests = event.enabled
             is JsBridge.MessageEvent.SetDebug -> {
-                debugMode = event.enabled
+                settings.debugMode = event.enabled
                 DebugLog.enabled = event.enabled
                 // Log only the filename — the absolute path includes the OS user home
                 // directory which frequently leaks when users share debug logs on public
@@ -214,7 +235,7 @@ class MindMapPanel(private val project: Project) : JPanel(BorderLayout()), Dispo
                     if (!ReadAction.compute<Boolean, RuntimeException> { callable.navigationElement.isValid }) {
                         debug { "Trace failed — callable became stale, file was modified since graph was built" }; return
                     }
-                    val d = depths
+                    val d = snapshot()
                     debug { "Tracing '${callable.name}' (${callable.languageId}) — outbound: ${d.retraceOutbound}, inbound: ${d.retraceInbound}" }
                     val startTime = System.currentTimeMillis()
                     val traceData = GraphAnalyzer(project, d.retraceOutbound, d.retraceInbound, debugMode, d.excludeTests).buildGraph(callable, indicator)
@@ -238,7 +259,7 @@ class MindMapPanel(private val project: Project) : JPanel(BorderLayout()), Dispo
     // Language-neutral: GraphAnalyzer delegates to the correct CallableProvider based on
     // the callable's sealed case.
     private fun analyzeCallable(callable: CallableFunction, indicator: ProgressIndicator): GraphData {
-        val d = depths
+        val d = snapshot()
         return GraphAnalyzer(project, d.outbound, d.inbound, debugMode, d.excludeTests).buildGraph(callable, indicator)
     }
 

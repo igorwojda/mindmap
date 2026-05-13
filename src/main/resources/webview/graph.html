@@ -2960,6 +2960,28 @@
             slider.style.setProperty('--fill', pct + '%');
         }
 
+        // Applies persisted plugin settings from the IDE side. Updates slider values,
+        // toggles, and internal state without echoing back to Kotlin (programmatic
+        // .value assignment does not fire 'input' / 'change' events).
+        window.applyInitialSettings = function(outbound, inbound, retraceOut, retraceIn, excludeTests, debug) {
+            const apply = (id, v, stateSet, disp) => {
+                const s = document.getElementById(id);
+                if (s) { s.value = v; _updateSliderFill(s); }
+                stateSet(v);
+                if (disp) disp.textContent = v;
+            };
+            apply('sldDout', outbound,    v => _sOut = v, typeof $doutV !== 'undefined' ? $doutV : null);
+            apply('sldDin',  inbound,     v => _sIn  = v, typeof $dinV  !== 'undefined' ? $dinV  : null);
+            apply('sldRout', retraceOut,  v => _rOut = v, typeof $routV !== 'undefined' ? $routV : null);
+            apply('sldRin',  retraceIn,   v => _rIn  = v, typeof $rinV  !== 'undefined' ? $rinV  : null);
+            _excludeTests = !!excludeTests;
+            if ($fTest) $fTest.checked = !_excludeTests;
+            _debugMode = !!debug;
+            if ($sDebug) $sDebug.checked = _debugMode;
+            const dh = document.getElementById('debugHint');
+            if (dh) dh.style.display = _debugMode ? 'block' : 'none';
+        };
+
 
         const _sliders = {
             sldDout: { get: () => _sOut, set: v => _sOut = v, el: () => $doutV, send: _sendDepth },
