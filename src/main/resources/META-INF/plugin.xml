@@ -36,11 +36,18 @@
 
     <p>For shortcuts, detailed help, and more visit <a href="https://vishal2376.github.io/mindmap">vishal2376.github.io/mindmap</a></p>
 
-    <p><em>Supports Kotlin (K1 &amp; K2) and Java on IntelliJ IDEA 2024.3–2026.1 and Android Studio Ladybug+. Built on an extensible provider architecture — additional JetBrains languages can be added without UI changes.</em></p>
+    <p><em>Supports Kotlin (K1 &amp; K2) and Java. Compatible with IntelliJ IDEA and Android Studio. Built on an extensible provider architecture — additional JetBrains languages can be added without UI changes.</em></p>
     ]]></description>
 
     <change-notes
     ><![CDATA[
+    <h3>1.0.6</h3>
+    <ul>
+        <li><b>Depth settings persist</b> — outbound/inbound depth and filter toggles are remembered across IDE restarts and applied to every Alt+G analysis (#18)</li>
+        <li><b>Class-prefix toggle</b> — new setting to show node labels as <code>ClassName.functionName</code>; preference persists (#19)</li>
+        <li><b>Fixed: trace layout</b> — tracing a node now places its callers to the left and callees to the right of the focused node, matching the root layout (#17)</li>
+    </ul>
+
     <h3>1.0.5</h3>
     <ul>
         <li><b>Java support</b> — Alt+G now works on Java methods. Graphs render with Java as the root, callers and callees resolve just like Kotlin. (#2)</li>
