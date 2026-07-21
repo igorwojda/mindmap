@@ -87,7 +87,8 @@ class MindMapPanel(private val project: Project) : JPanel(BorderLayout()), Dispo
                     retraceOutbound = settings.retraceOutboundDepth,
                     retraceInbound = settings.retraceInboundDepth,
                     excludeTests = settings.excludeTests,
-                    debug = settings.debugMode
+                    debug = settings.debugMode,
+                    showClassPrefix = settings.showClassPrefix
                 )
             }
         )
@@ -123,6 +124,7 @@ class MindMapPanel(private val project: Project) : JPanel(BorderLayout()), Dispo
             is JsBridge.MessageEvent.SetDepth    -> { settings.outboundDepth = event.outbound; settings.inboundDepth = event.inbound }
             is JsBridge.MessageEvent.SetRetraceDepth -> { settings.retraceOutboundDepth = event.outbound; settings.retraceInboundDepth = event.inbound }
             is JsBridge.MessageEvent.SetExcludeTests -> settings.excludeTests = event.enabled
+            is JsBridge.MessageEvent.SetShowClassPrefix -> settings.showClassPrefix = event.enabled
             is JsBridge.MessageEvent.SetDebug -> {
                 settings.debugMode = event.enabled
                 DebugLog.enabled = event.enabled

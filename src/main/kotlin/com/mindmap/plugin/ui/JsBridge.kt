@@ -73,6 +73,8 @@ class JsBridge(
         data class SetDebug(val enabled: Boolean) : MessageEvent()
         /** User toggled test function exclusion in filter panel. */
         data class SetExcludeTests(val enabled: Boolean) : MessageEvent()
+        /** User toggled the "Show class prefix" label option. */
+        data class SetShowClassPrefix(val enabled: Boolean) : MessageEvent()
     }
 
     /**
@@ -179,14 +181,15 @@ class JsBridge(
     fun sendInitialSettings(
         outbound: Int, inbound: Int,
         retraceOutbound: Int, retraceInbound: Int,
-        excludeTests: Boolean, debug: Boolean
+        excludeTests: Boolean, debug: Boolean,
+        showClassPrefix: Boolean
     ) {
         if (isDisposed) return
         SwingUtilities.invokeLater {
             if (isDisposed) return@invokeLater
             try {
                 browser.cefBrowser.executeJavaScript(
-                    "applyInitialSettings($outbound, $inbound, $retraceOutbound, $retraceInbound, $excludeTests, $debug)",
+                    "applyInitialSettings($outbound, $inbound, $retraceOutbound, $retraceInbound, $excludeTests, $debug, $showClassPrefix)",
                     browser.cefBrowser.url, 0
                 )
             } catch (e: Exception) {
@@ -300,6 +303,7 @@ class JsBridge(
             }
             "set_debug" -> MessageEvent.SetDebug(msg.enabled ?: false)
             "set_exclude_tests" -> MessageEvent.SetExcludeTests(msg.enabled ?: true)
+            "set_show_class_prefix" -> MessageEvent.SetShowClassPrefix(msg.enabled ?: false)
             else -> {
                 LOG.debug("Unknown JS message type: ${msg.type}")
                 null

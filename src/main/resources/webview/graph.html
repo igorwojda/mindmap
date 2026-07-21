@@ -1810,6 +1810,17 @@
 
                 <div class="sm-sec">
                     <div class="srow" style="justify-content:space-between">
+                        <span class="srow-lbl">Show Class Prefix</span>
+                        <label class="sm-toggle">
+                            <input type="checkbox" id="sClassPrefix">
+                            <span class="sm-toggle-track"></span>
+                        </label>
+                    </div>
+                    <div class="sm-sec-desc">When on, node labels show <b>ClassName.method</b> instead of just <b>method</b>.</div>
+                </div>
+
+                <div class="sm-sec">
+                    <div class="srow" style="justify-content:space-between">
                         <span class="srow-lbl">Debug Logging</span>
                         <label class="sm-toggle">
                             <input type="checkbox" id="sDebug">
@@ -2026,10 +2037,18 @@
         $bfilt.addEventListener('click', () => $fOy.classList.add('s'));
         $fCl.addEventListener('click', () => $fOy.classList.remove('s'));
         let _excludeTests = true;
+        let _showClassPrefix = false;
         const $fTest = document.getElementById('fTest');
         $fTest.addEventListener('change', () => {
             _excludeTests = !$fTest.checked;
             _send({ type: 'set_exclude_tests', enabled: _excludeTests });
+        });
+        const $sClassPrefix = document.getElementById('sClassPrefix');
+        $sClassPrefix.addEventListener('change', () => {
+            _showClassPrefix = $sClassPrefix.checked;
+            _send({ type: 'set_show_class_prefix', enabled: _showClassPrefix });
+            // Redraw labels on current graph so the toggle takes effect immediately.
+            if (typeof D !== 'undefined' && D && Array.isArray(D.nodes)) drawGraph(D);
         });
         // Shortcuts button moved inside settings
         $('sShortcuts').addEventListener('click', () => { $sOy.classList.remove('s'); $mOy.classList.add('s') });
@@ -2100,7 +2119,10 @@
 
             const bgs = { ROOT: '#352840', OUTBOUND: '#1e2a3d', INBOUND: '#1e3028' };
             const bg = n.isLibrary ? '#2a2a30' : (bgs[n.type] || '#252636');
-            const label = escL(isRoot ? (n.name || 'anonymous') : (n.name || 'anon'));
+            // When the "Show class prefix" toggle is on, prefer `ClassName.method` form
+            // (carried on `qualifiedName`) over the bare method name.
+            const baseName = (_showClassPrefix && n.qualifiedName) ? n.qualifiedName : (isRoot ? (n.name || 'anonymous') : (n.name || 'anon'));
+            const label = escL(baseName);
             const fullLabel = isDup && n.fileName ? label + '\n_' + escL(n.fileName) + '_' : label;
 
             const level = isRoot ? 0 : n.type === 'INBOUND' ? -(n.depth || 1) : (n.depth || 1);
@@ -2943,6 +2965,8 @@
             const defaults = { sldDout: 3, sldDin: 2, sldRout: 1, sldRin: 1 };
             _sOut = 3; _sIn = 2; _rOut = 1; _rIn = 1;
             _debugMode = false; $sDebug.checked = false;
+            _showClassPrefix = false; if ($sClassPrefix) $sClassPrefix.checked = false;
+            _send({ type: 'set_show_class_prefix', enabled: false });
             document.getElementById('debugHint').style.display = 'none';
             Object.entries(defaults).forEach(([id, v]) => {
                 const s = document.getElementById(id);
@@ -2963,7 +2987,7 @@
         // Applies persisted plugin settings from the IDE side. Updates slider values,
         // toggles, and internal state without echoing back to Kotlin (programmatic
         // .value assignment does not fire 'input' / 'change' events).
-        window.applyInitialSettings = function(outbound, inbound, retraceOut, retraceIn, excludeTests, debug) {
+        window.applyInitialSettings = function(outbound, inbound, retraceOut, retraceIn, excludeTests, debug, showClassPrefix) {
             const apply = (id, v, stateSet, disp) => {
                 const s = document.getElementById(id);
                 if (s) { s.value = v; _updateSliderFill(s); }
@@ -2980,6 +3004,8 @@
             if ($sDebug) $sDebug.checked = _debugMode;
             const dh = document.getElementById('debugHint');
             if (dh) dh.style.display = _debugMode ? 'block' : 'none';
+            _showClassPrefix = !!showClassPrefix;
+            if ($sClassPrefix) $sClassPrefix.checked = _showClassPrefix;
         };
 
 

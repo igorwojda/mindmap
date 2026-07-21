@@ -56,6 +56,7 @@ data class CallGraphNode(
     val depth: Int = 0,
     val isLibrary: Boolean = false,
     val loc: Int = 0,
+    val qualifiedName: String = "",
     val children: MutableList<String> = mutableListOf(),
     val parents: MutableList<String> = mutableListOf()
 ) {
