@@ -68,6 +68,18 @@ class ShowCallGraphAction : AnAction() {
                 override fun run(indicator: ProgressIndicator) {
                     try {
                         indicator.isIndeterminate = true
+
+                        // Outbound resolution (Kotlin Analysis API) and inbound caller
+                        // search (ReferencesSearch) both depend on indices that are
+                        // incomplete during indexing. Running them mid-dumb-mode doesn't
+                        // throw — it silently returns few/no results, which looked like
+                        // "only the root node renders" with nothing in the log to explain
+                        // why. Block here until indexing finishes instead of guessing.
+                        if (DumbService.getInstance(project).isDumb) {
+                            indicator.text = "Waiting for indexing to finish..."
+                            DumbService.getInstance(project).waitForSmartMode()
+                        }
+
                         indicator.text = "Analyzing call graph (${callable.languageId})..."
 
                         val graphData = GraphAnalyzer(project).buildGraph(callable, indicator)

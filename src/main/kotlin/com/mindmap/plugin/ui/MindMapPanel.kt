@@ -10,6 +10,7 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.Disposable
 import com.intellij.ui.jcef.JBCefBrowser
@@ -214,6 +215,7 @@ class MindMapPanel(private val project: Project) : JPanel(BorderLayout()), Dispo
                     if (!ReadAction.compute<Boolean, RuntimeException> { callable.navigationElement.isValid }) {
                         debug { "Trace failed — callable became stale, file was modified since graph was built" }; return
                     }
+                    waitForSmartMode(indicator)
                     val d = depths
                     debug { "Tracing '${callable.name}' (${callable.languageId}) — outbound: ${d.retraceOutbound}, inbound: ${d.retraceInbound}" }
                     val startTime = System.currentTimeMillis()
@@ -238,8 +240,18 @@ class MindMapPanel(private val project: Project) : JPanel(BorderLayout()), Dispo
     // Language-neutral: GraphAnalyzer delegates to the correct CallableProvider based on
     // the callable's sealed case.
     private fun analyzeCallable(callable: CallableFunction, indicator: ProgressIndicator): GraphData {
+        waitForSmartMode(indicator)
         val d = depths
         return GraphAnalyzer(project, d.outbound, d.inbound, debugMode, d.excludeTests).buildGraph(callable, indicator)
+    }
+
+    // Outbound/inbound resolution relies on indices that are incomplete during
+    // indexing — searches don't throw, they just silently return partial/empty
+    // results, which looks like a broken graph with nothing in the log to explain why.
+    private fun waitForSmartMode(indicator: ProgressIndicator) {
+        if (!DumbService.getInstance(project).isDumb) return
+        indicator.text = "Waiting for indexing to finish..."
+        DumbService.getInstance(project).waitForSmartMode()
     }
 
     private fun handleHistoryBack() {
