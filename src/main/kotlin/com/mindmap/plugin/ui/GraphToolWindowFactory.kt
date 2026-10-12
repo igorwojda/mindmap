@@ -34,7 +34,12 @@ class GraphToolWindowFactory : ToolWindowFactory, DumbAware {
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        if (!JBCefApp.isSupported()) {
+        // Checked via reflection, not `JBCefApp.isSupported()` directly: merely naming a
+        // JCEF type forces the JVM to resolve it, which throws NoClassDefFoundError before
+        // this method's body even runs on IDEs where the "Web Browser (JCEF)" plugin isn't
+        // on our class loader (build 262+ ships JCEF as a separate bundled plugin; see
+        // the optional com.intellij.modules.jcef <depends> in plugin.xml).
+        if (!JcefSupport.isClassLoadable() || !JBCefApp.isSupported()) {
             val content = ContentFactory.getInstance().createContent(createJcefErrorPanel(), "Call Graph", false)
             toolWindow.contentManager.addContent(content)
             return
