@@ -100,6 +100,7 @@ class KotlinCallableProvider : CallableProvider {
             throw ce
         } catch (e: Exception) {
             LOG.warn("Error in Kotlin outbound analysis", e)
+            com.mindmap.plugin.DebugLog.error("Error in Kotlin outbound analysis for '${fn.name}'", e)
         }
         return results
     }
@@ -163,6 +164,7 @@ class KotlinCallableProvider : CallableProvider {
             throw ce
         } catch (e: Exception) {
             LOG.warn("Error searching Kotlin inbound references", e)
+            com.mindmap.plugin.DebugLog.error("Error searching Kotlin inbound references for '${fn.name}'", e)
             emptyList()
         }
     }
