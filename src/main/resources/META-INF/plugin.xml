@@ -127,6 +127,13 @@
 
     <depends>com.intellij.modules.java</depends>
     <depends>org.jetbrains.kotlin</depends>
+    <!-- From IDE build 262 (2026.2) the embedded browser ships as the bundled "Web
+         Browser (JCEF)" plugin, and its classes reach only plugins that depend on it:
+         without this, the tool window fails with NoClassDefFoundError on JBCefApp /
+         JBCefBrowser and the user sees an empty panel with no explanation. Optional
+         because IDEs before 2026.2 have no such plugin; mindmap-jcef.xml is empty on
+         purpose — its only job is to be a valid config-file for the optional depends. -->
+    <depends optional="true" config-file="mindmap-jcef.xml">com.intellij.modules.jcef</depends>
 
     <!-- Pluggable per-language call-graph resolution. Public EP by design:
          community plugins can add language support. dynamic=true allows

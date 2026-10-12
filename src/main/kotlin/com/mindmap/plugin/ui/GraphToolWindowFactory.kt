@@ -38,11 +38,21 @@ class GraphToolWindowFactory : ToolWindowFactory, DumbAware {
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        // Without this try/catch, any exception thrown while building the panel (JCEF
-        // init, resource loading, etc.) propagates out of the platform's content-creation
-        // call, no content ever gets added, and the tool window is left showing the
-        // generic IntelliJ "Nothing to show" placeholder with zero indication anything
-        // went wrong (#22). Always fall back to a visible, actionable error panel instead.
+        // Checked via reflection, not `JBCefApp.isSupported()` directly: merely naming a
+        // JCEF type forces the JVM to resolve it, which throws NoClassDefFoundError before
+        // this method's body even runs on IDEs where the "Web Browser (JCEF)" plugin isn't
+        // on our class loader (build 262+ ships JCEF as a separate bundled plugin; see
+        // the optional com.intellij.modules.jcef <depends> in plugin.xml).
+        if (!JcefSupport.isClassLoadable()) {
+            val content = ContentFactory.getInstance().createContent(createJcefErrorPanel(), "Call Graph", false)
+            toolWindow.contentManager.addContent(content)
+            return
+        }
+        // Without this try/catch, any other exception thrown while building the panel
+        // (resource loading, etc.) propagates out of the platform's content-creation call,
+        // no content ever gets added, and the tool window is left showing the generic
+        // IntelliJ "Nothing to show" placeholder with zero indication anything went wrong
+        // (#22). Always fall back to a visible, actionable error panel instead.
         try {
             if (!JBCefApp.isSupported()) {
                 val content = ContentFactory.getInstance().createContent(createJcefErrorPanel(), "Call Graph", false)
