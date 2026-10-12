@@ -80,15 +80,17 @@ class ShowCallGraphAction : AnAction() {
                         }
                     } catch (ce: com.intellij.openapi.progress.ProcessCanceledException) {
                         throw ce
-                    } catch (ex: Exception) {
-                        LOG.error("Failed to generate mindmap", ex)
-                        DebugLog.error("Failed to generate mindmap", ex)
+                    } catch (t: Throwable) {
+                        LOG.error("Failed to generate mindmap", t)
+                        DebugLog.error("Failed to generate mindmap", t)
                     }
                 }
             })
-        } catch (ex: Exception) {
-            LOG.error("Mindmap action failed", ex)
-            DebugLog.error("Mindmap action failed", ex)
+        } catch (ce: com.intellij.openapi.progress.ProcessCanceledException) {
+            throw ce
+        } catch (t: Throwable) {
+            LOG.error("Mindmap action failed", t)
+            DebugLog.error("Mindmap action failed", t)
         }
     }
 
@@ -118,7 +120,9 @@ class ShowCallGraphAction : AnAction() {
                 }
             }
             e.presentation.isEnabledAndVisible = visible
-        } catch (ex: Exception) {
+        } catch (ce: com.intellij.openapi.progress.ProcessCanceledException) {
+            throw ce
+        } catch (t: Throwable) {
             e.presentation.isEnabledAndVisible = false
         }
     }

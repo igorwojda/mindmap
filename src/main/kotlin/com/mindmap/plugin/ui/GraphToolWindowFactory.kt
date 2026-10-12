@@ -1,11 +1,13 @@
 package com.mindmap.plugin.ui
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefApp
+import com.mindmap.plugin.DebugLog
 import java.awt.*
 import javax.swing.*
 
@@ -25,6 +27,8 @@ class GraphToolWindowFactory : ToolWindowFactory, DumbAware {
         private val SURFACE2 = Color(88, 91, 112)
         private val RED      = Color(243, 139, 168)
         private val BLUE     = Color(137, 180, 250)
+
+        private val LOG = Logger.getInstance(GraphToolWindowFactory::class.java)
     }
 
     override fun shouldBeAvailable(project: Project): Boolean = true
@@ -34,25 +38,43 @@ class GraphToolWindowFactory : ToolWindowFactory, DumbAware {
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        if (!JBCefApp.isSupported()) {
-            val content = ContentFactory.getInstance().createContent(createJcefErrorPanel(), "Call Graph", false)
+        // Without this try/catch, any exception thrown while building the panel (JCEF
+        // init, resource loading, etc.) propagates out of the platform's content-creation
+        // call, no content ever gets added, and the tool window is left showing the
+        // generic IntelliJ "Nothing to show" placeholder with zero indication anything
+        // went wrong (#22). Always fall back to a visible, actionable error panel instead.
+        try {
+            if (!JBCefApp.isSupported()) {
+                val content = ContentFactory.getInstance().createContent(createJcefErrorPanel(), "Call Graph", false)
+                toolWindow.contentManager.addContent(content)
+                return
+            }
+            val panel = MindMapPanel(project)
+            val content = ContentFactory.getInstance().createContent(panel, "Call Graph", false)
+            content.setDisposer(panel)
             toolWindow.contentManager.addContent(content)
-            return
+        } catch (t: Throwable) {
+            LOG.error("Failed to create Mindmap tool window content", t)
+            DebugLog.error("Failed to create Mindmap tool window content", t)
+            val content = ContentFactory.getInstance().createContent(createCrashErrorPanel(t), "Call Graph", false)
+            toolWindow.contentManager.addContent(content)
         }
-        val panel = MindMapPanel(project)
-        val content = ContentFactory.getInstance().createContent(panel, "Call Graph", false)
-        content.setDisposer(panel)
-        toolWindow.contentManager.addContent(content)
     }
 
-    private fun createJcefErrorPanel(): JPanel {
+    private fun createJcefErrorPanel(): JPanel =
+        buildErrorPanel("JCEF Not Available", jcefInstructionsHtml())
+
+    private fun createCrashErrorPanel(t: Throwable): JPanel =
+        buildErrorPanel("Failed to Load Mindmap", crashInstructionsHtml(t))
+
+    private fun buildErrorPanel(title: String, bodyHtml: String): JPanel {
         val outer = JPanel(GridBagLayout()).apply { background = BG }
         val card = buildInnerCard()
-        card.add(JLabel("JCEF Not Available").apply {
+        card.add(JLabel(title).apply {
             foreground = RED; font = Font("SansSerif", Font.BOLD, 16); alignmentX = Component.CENTER_ALIGNMENT
         })
         card.add(Box.createVerticalStrut(12))
-        card.add(JLabel(jcefInstructionsHtml()).apply { alignmentX = Component.CENTER_ALIGNMENT })
+        card.add(JLabel(bodyHtml).apply { alignmentX = Component.CENTER_ALIGNMENT })
         card.add(Box.createVerticalStrut(16))
         card.add(com.intellij.ui.components.BrowserLink("Not working? Checkout help", "https://vishal2376.github.io/mindmap#troubleshoot").apply {
             alignmentX = Component.CENTER_ALIGNMENT; foreground = BLUE
@@ -91,4 +113,14 @@ class GraphToolWindowFactory : ToolWindowFactory, DumbAware {
         "</div><br><br>" +
         "<span style='color:#6c7086;font-size:11px;'>(IntelliJ IDEA includes JCEF by default)</span>" +
         "</div></html>"
+
+    private fun crashInstructionsHtml(t: Throwable): String {
+        val detail = (t.message ?: t.javaClass.simpleName)
+            .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        return "<html><div style='text-align:center;width:260px;color:#cdd6f4;font-family:sans-serif;font-size:12px;line-height:1.6;'>" +
+            "Mindmap crashed while loading this panel.<br><br>" +
+            "<span style='color:#6c7086;font-size:11px;'>$detail</span><br><br>" +
+            "Please report this on GitHub with your IDE version and the log above." +
+            "</div></html>"
+    }
 }
