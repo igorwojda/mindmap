@@ -2019,7 +2019,10 @@
         $sbn.addEventListener('click', e => { if (!sOpen) { sOpen = true; $sbn.classList.add('op'); setTimeout(() => $sin.focus(), 250); e.stopPropagation() } });
         $sin.addEventListener('click', e => e.stopPropagation());
         $sin.addEventListener('input', e => { clearTimeout(_sf); _sf = setTimeout(() => { sf = e.target.value; filtAll() }, 80) });
-        document.addEventListener('click', e => { if (sOpen && !$sbn.contains(e.target)) { sOpen = false; $sbn.classList.remove('op'); sf = ''; $sin.value = ''; filtAll() } });
+        // Clicking outside the search box (e.g. a node) only auto-collapses it back to
+        // the icon when there's no search text -- a non-empty search stays open and
+        // untouched until the user clears it themselves (Escape, or deleting the text).
+        document.addEventListener('click', e => { if (sOpen && !$sbn.contains(e.target) && !sf) { sOpen = false; $sbn.classList.remove('op'); $sin.value = ''; filtAll() } });
 
         // Help Modal
         // Filter panel
