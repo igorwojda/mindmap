@@ -3,10 +3,10 @@ package com.mindmap.plugin.ui
 import com.google.gson.GsonBuilder
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
-import com.mindmap.plugin.DebugLog
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
+import com.mindmap.plugin.DebugLog
 import com.mindmap.plugin.analysis.GraphData
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
@@ -27,13 +27,20 @@ class JsBridge(
     private val onMessage: (MessageEvent) -> Unit
 ) {
 
-    private val gson = GsonBuilder().excludeFieldsWithModifiers(java.lang.reflect.Modifier.TRANSIENT).create()
+    private val gson =
+        GsonBuilder().excludeFieldsWithModifiers(java.lang.reflect.Modifier.TRANSIENT).create()
     private val jsQuery = JBCefJSQuery.create(browser as JBCefBrowserBase)
-    @Volatile private var isDisposed = false
-    @Volatile private var isBrowserReady = false
+    @Volatile
+    private var isDisposed = false
+    @Volatile
+    private var isBrowserReady = false
+
     // @Volatile: written from background threads (markPending), read from CEF thread (onLoadEnd).
-    @Volatile private var pendingData: GraphData? = null
-    @Volatile private var pendingAction: (() -> Unit)? = null
+    @Volatile
+    private var pendingData: GraphData? = null
+    @Volatile
+    private var pendingAction: (() -> Unit)? = null
+
     // Stored so it can be removed in dispose() to prevent post-dispose callbacks and memory leaks.
     private var loadHandler: CefLoadHandlerAdapter? = null
 
@@ -55,24 +62,33 @@ class JsBridge(
     sealed class MessageEvent {
         /** User clicked a node: navigate editor to that function. */
         data class Navigate(val nodeId: String) : MessageEvent()
+
         /** User clicked an external link (e.g. help link in the JCEF error panel). */
         data class OpenUrl(val url: String) : MessageEvent()
+
         /** User expanded a node: rebuild graph centered on that function. */
         data class Expand(val nodeId: String) : MessageEvent()
+
         /** User triggered trace: overlay callers/callees of that node on the current graph. */
         data class Trace(val nodeId: String) : MessageEvent()
         data object HistoryBack : MessageEvent()
         data object HistoryForward : MessageEvent()
+
         /** User restarted: clear graph and history. */
         data object Restart : MessageEvent()
+
         /** User changed depth sliders for normal graph generation. */
         data class SetDepth(val outbound: Int, val inbound: Int) : MessageEvent()
+
         /** User changed depth sliders specifically for trace operations. */
         data class SetRetraceDepth(val outbound: Int, val inbound: Int) : MessageEvent()
+
         /** User toggled debug mode in settings. */
         data class SetDebug(val enabled: Boolean) : MessageEvent()
+
         /** User toggled test function exclusion in filter panel. */
         data class SetExcludeTests(val enabled: Boolean) : MessageEvent()
+
         /** User toggled the "Show class prefix" label option. */
         data class SetShowClassPrefix(val enabled: Boolean) : MessageEvent()
     }
@@ -90,7 +106,10 @@ class JsBridge(
             try {
                 handleRawMessage(request)
             } catch (e: Exception) {
-                LOG.error("JS bridge handler error", e); DebugLog.error("JS bridge handler error", e)
+                LOG.error("JS bridge handler error", e); DebugLog.error(
+                    "JS bridge handler error",
+                    e
+                )
             }
             null
         }
@@ -115,7 +134,10 @@ class JsBridge(
                         }
                     }
                 } catch (e: Exception) {
-                    LOG.error("Failed to initialize JS bridge", e); DebugLog.error("Failed to initialize JS bridge", e)
+                    LOG.error(
+                        "Failed to initialize JS bridge",
+                        e
+                    ); DebugLog.error("Failed to initialize JS bridge", e)
                 }
             }
         }
@@ -129,7 +151,8 @@ class JsBridge(
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 val htmlContent = javaClass.getResource("/webview/graph.html")?.readText()
-                val logoSvg = javaClass.getResource("/icons/mindmapActionIcon.svg")?.readText().orEmpty()
+                val logoSvg =
+                    javaClass.getResource("/icons/mindmapActionIcon.svg")?.readText().orEmpty()
                 // Inject the action-icon SVG into the welcome screen so the logo stays in sync
                 // with the tool-window icon. Add our ei class so welcome-screen CSS sizes it.
                 val logoWithClass = logoSvg.replaceFirst("<svg", "<svg class=\"ei\"")
@@ -140,7 +163,8 @@ class JsBridge(
                 //
                 // `String.replace(String, String)` in Kotlin is a literal replacement
                 // (no regex), so `$` and `\` in the minified JS source are preserved.
-                val visNetworkJs = javaClass.getResource("/webview/vis-network.min.js")?.readText().orEmpty()
+                val visNetworkJs =
+                    javaClass.getResource("/webview/vis-network.min.js")?.readText().orEmpty()
                 val finalHtml = htmlContent
                     ?.replace("<!--WELCOME_LOGO-->", logoWithClass)
                     ?.replace("<!--VIS_NETWORK_JS-->", visNetworkJs)
@@ -193,7 +217,10 @@ class JsBridge(
                     browser.cefBrowser.url, 0
                 )
             } catch (e: Exception) {
-                LOG.error("Failed to send initial settings", e); DebugLog.error("Failed to send initial settings", e)
+                LOG.error(
+                    "Failed to send initial settings",
+                    e
+                ); DebugLog.error("Failed to send initial settings", e)
             }
         }
     }
@@ -208,7 +235,10 @@ class JsBridge(
                     browser.cefBrowser.url, 0
                 )
             } catch (e: Exception) {
-                LOG.error("Failed to send history state", e); DebugLog.error("Failed to send history state", e)
+                LOG.error(
+                    "Failed to send history state",
+                    e
+                ); DebugLog.error("Failed to send history state", e)
             }
         }
     }
@@ -233,7 +263,8 @@ class JsBridge(
             if (isDisposed) return@executeOnPooledThread
             try {
                 val json = gson.toJson(data)
-                val encoded = java.util.Base64.getEncoder().encodeToString(json.toByteArray(Charsets.UTF_8))
+                val encoded =
+                    java.util.Base64.getEncoder().encodeToString(json.toByteArray(Charsets.UTF_8))
                 SwingUtilities.invokeLater {
                     if (isDisposed) return@invokeLater
                     try {
@@ -242,18 +273,24 @@ class JsBridge(
                         // parsed, then deleted so the global namespace stays clean.
                         browser.cefBrowser.executeJavaScript(
                             "(function(){" +
-                                "window.__mmPayload='$encoded';" +
-                                "try{$jsFunction(JSON.parse(atob(window.__mmPayload)));}" +
-                                "finally{delete window.__mmPayload;}" +
-                            "})();",
+                                    "window.__mmPayload='$encoded';" +
+                                    "try{$jsFunction(JSON.parse(atob(window.__mmPayload)));}" +
+                                    "finally{delete window.__mmPayload;}" +
+                                    "})();",
                             browser.cefBrowser.url, 0
                         )
                     } catch (e: Exception) {
-                        LOG.error("Failed to execute $jsFunction", e); DebugLog.error("Failed to execute $jsFunction", e)
+                        LOG.error(
+                            "Failed to execute $jsFunction",
+                            e
+                        ); DebugLog.error("Failed to execute $jsFunction", e)
                     }
                 }
             } catch (e: Exception) {
-                LOG.error("Failed to encode graph data for $jsFunction", e); DebugLog.error("Failed to encode graph data for $jsFunction", e)
+                LOG.error(
+                    "Failed to encode graph data for $jsFunction",
+                    e
+                ); DebugLog.error("Failed to encode graph data for $jsFunction", e)
             }
         }
     }
@@ -286,6 +323,7 @@ class JsBridge(
                     validateNodeId(msg.id)?.let { MessageEvent.Navigate(it) }
                 }
             }
+
             "expand" -> validateNodeId(msg.id)?.let { MessageEvent.Expand(it) }
             "trace" -> validateNodeId(msg.id)?.let { MessageEvent.Trace(it) }
             "history_back" -> MessageEvent.HistoryBack
@@ -296,11 +334,13 @@ class JsBridge(
                 val inn = msg.inbound?.coerceIn(1, 5) ?: return null
                 MessageEvent.SetDepth(out, inn)
             }
+
             "set_retrace_depth" -> {
                 val out = msg.outbound?.coerceIn(1, 5) ?: return null
                 val inn = msg.inbound?.coerceIn(1, 5) ?: return null
                 MessageEvent.SetRetraceDepth(out, inn)
             }
+
             "set_debug" -> MessageEvent.SetDebug(msg.enabled ?: false)
             "set_exclude_tests" -> MessageEvent.SetExcludeTests(msg.enabled ?: true)
             "set_show_class_prefix" -> MessageEvent.SetShowClassPrefix(msg.enabled ?: false)
@@ -348,14 +388,17 @@ class JsBridge(
                     LOG.warn("Blocked URL with disallowed scheme: ${uri.scheme}")
                     null
                 }
+
                 host.isNullOrBlank() -> {
                     LOG.warn("Blocked URL with missing host")
                     null
                 }
+
                 uri.userInfo != null -> {
                     LOG.warn("Blocked URL containing userinfo component")
                     null
                 }
+
                 else -> url
             }
         } catch (e: Exception) {

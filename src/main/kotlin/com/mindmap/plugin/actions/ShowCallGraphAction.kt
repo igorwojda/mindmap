@@ -59,7 +59,9 @@ class ShowCallGraphAction : AnAction() {
                 GraphAnalyzer(project).findCallable(element)
             } ?: return
 
-            val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(Constants.TOOL_WINDOW_ID) ?: return
+            val toolWindow =
+                ToolWindowManager.getInstance(project).getToolWindow(Constants.TOOL_WINDOW_ID)
+                    ?: return
             toolWindow.show()
 
             val displayName = callable.name ?: "function"
@@ -94,7 +96,8 @@ class ShowCallGraphAction : AnAction() {
 
                         // UI and history mutations must happen on the EDT.
                         SwingUtilities.invokeLater {
-                            val content = toolWindow.contentManager.getContent(0) ?: return@invokeLater
+                            val content =
+                                toolWindow.contentManager.getContent(0) ?: return@invokeLater
                             val panel = content.component as? MindMapPanel ?: return@invokeLater
                             panel.updateGraph(graphData)
                         }
@@ -130,7 +133,8 @@ class ShowCallGraphAction : AnAction() {
             // would stress the indexer and add no user value.
             var visible = false
             if (project != null && !DumbService.getInstance(project).isDumb
-                && psiFile != null && editor != null) {
+                && psiFile != null && editor != null
+            ) {
                 val offset = editor.caretModel.offset
                 val element = psiFile.findElementAt(offset)
                 if (element != null) {

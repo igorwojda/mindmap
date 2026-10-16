@@ -74,7 +74,10 @@ class KotlinCallableProvider : CallableProvider {
      * If the resolved target is a `PsiMethod` (Kotlin calling Java), we wrap it as
      * [CallableFunction.Java] — that is how cross-language outbound edges appear.
      */
-    override fun outboundTargets(project: Project, callable: CallableFunction): List<CallableFunction> {
+    override fun outboundTargets(
+        project: Project,
+        callable: CallableFunction
+    ): List<CallableFunction> {
         val fn = (callable as? CallableFunction.Kotlin)?.fn ?: return emptyList()
         val body = fn.bodyExpression ?: return emptyList()
         val calls = PsiTreeUtil.findChildrenOfType(body, KtCallExpression::class.java)
@@ -85,7 +88,8 @@ class KotlinCallableProvider : CallableProvider {
             analyze(fn) {
                 for (callExpr in calls) {
                     try {
-                        val resolved = callExpr.resolveToCall()?.singleFunctionCallOrNull() ?: continue
+                        val resolved =
+                            callExpr.resolveToCall()?.singleFunctionCallOrNull() ?: continue
                         val targetPsi = resolved.symbol.psi ?: continue
                         val wrapped = wrapResolvedTarget(targetPsi) ?: continue
                         results.add(wrapped)
@@ -100,7 +104,10 @@ class KotlinCallableProvider : CallableProvider {
             throw ce
         } catch (e: Exception) {
             LOG.warn("Error in Kotlin outbound analysis", e)
-            com.mindmap.plugin.DebugLog.error("Error in Kotlin outbound analysis for '${fn.name}'", e)
+            com.mindmap.plugin.DebugLog.error(
+                "Error in Kotlin outbound analysis for '${fn.name}'",
+                e
+            )
         }
         return results
     }
@@ -121,6 +128,7 @@ class KotlinCallableProvider : CallableProvider {
                 if (source is KtNamedFunction) CallableFunction.Kotlin(source)
                 else CallableFunction.Java(psi)
             }
+
             else -> null
         }
     }
@@ -146,7 +154,8 @@ class KotlinCallableProvider : CallableProvider {
             val superMethods = lightMethods.flatMap { lm ->
                 SuperMethodsSearch.search(lm, null, true, false).findAll().map { it.method }
             }
-            val searchTargets: List<PsiElement> = (listOf<PsiElement>(fn) + lightMethods + superMethods).distinct()
+            val searchTargets: List<PsiElement> =
+                (listOf<PsiElement>(fn) + lightMethods + superMethods).distinct()
 
             searchTargets
                 .flatMap { target -> ReferencesSearch.search(target, scope).findAll() }
@@ -154,7 +163,8 @@ class KotlinCallableProvider : CallableProvider {
                 .mapNotNull { ref ->
                     // First match wins — PsiTreeUtil walks up, so the closest wrapping callable
                     // in either language is picked.
-                    val kotlinParent = PsiTreeUtil.getParentOfType(ref.element, KtNamedFunction::class.java)
+                    val kotlinParent =
+                        PsiTreeUtil.getParentOfType(ref.element, KtNamedFunction::class.java)
                     if (kotlinParent != null) return@mapNotNull CallableFunction.Kotlin(kotlinParent)
                     val javaParent = PsiTreeUtil.getParentOfType(ref.element, PsiMethod::class.java)
                     if (javaParent != null) CallableFunction.Java(javaParent) else null
@@ -164,7 +174,10 @@ class KotlinCallableProvider : CallableProvider {
             throw ce
         } catch (e: Exception) {
             LOG.warn("Error searching Kotlin inbound references", e)
-            com.mindmap.plugin.DebugLog.error("Error searching Kotlin inbound references for '${fn.name}'", e)
+            com.mindmap.plugin.DebugLog.error(
+                "Error searching Kotlin inbound references for '${fn.name}'",
+                e
+            )
             emptyList()
         }
     }
@@ -174,7 +187,10 @@ class KotlinCallableProvider : CallableProvider {
      * project sources (Kotlin or Java). Bounded to 3 to prevent graph explosion on
      * interfaces with many implementers.
      */
-    override fun implementations(project: Project, callable: CallableFunction): List<CallableFunction> {
+    override fun implementations(
+        project: Project,
+        callable: CallableFunction
+    ): List<CallableFunction> {
         val fn = (callable as? CallableFunction.Kotlin)?.fn ?: return emptyList()
         if (fn.bodyExpression != null) return emptyList()
         return try {
@@ -185,7 +201,10 @@ class KotlinCallableProvider : CallableProvider {
                         // `navigationElement` lands on the real source — Kotlin for .kt overrides,
                         // Java for .java overrides — so we wrap into the matching case.
                         when (val nav = overridingMethod.navigationElement) {
-                            is KtNamedFunction -> if (nav.bodyExpression != null) CallableFunction.Kotlin(nav) else null
+                            is KtNamedFunction -> if (nav.bodyExpression != null) CallableFunction.Kotlin(
+                                nav
+                            ) else null
+
                             is PsiMethod -> if (nav.body != null) CallableFunction.Java(nav) else null
                             else -> null
                         }

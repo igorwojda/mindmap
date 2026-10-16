@@ -8,8 +8,19 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.jcef.JBCefApp
 import com.mindmap.plugin.DebugLog
-import java.awt.*
-import javax.swing.*
+import java.awt.BasicStroke
+import java.awt.Color
+import java.awt.Component
+import java.awt.Font
+import java.awt.Graphics
+import java.awt.Graphics2D
+import java.awt.GridBagLayout
+import java.awt.RenderingHints
+import javax.swing.BorderFactory
+import javax.swing.Box
+import javax.swing.BoxLayout
+import javax.swing.JLabel
+import javax.swing.JPanel
 
 /**
  * Creates the Mindmap tool window content.
@@ -22,11 +33,11 @@ class GraphToolWindowFactory : ToolWindowFactory, DumbAware {
 
     companion object {
         // Catppuccin Mocha palette
-        private val BG       = Color(30, 30, 46)
+        private val BG = Color(30, 30, 46)
         private val SURFACE1 = Color(49, 50, 68)
         private val SURFACE2 = Color(88, 91, 112)
-        private val RED      = Color(243, 139, 168)
-        private val BLUE     = Color(137, 180, 250)
+        private val RED = Color(243, 139, 168)
+        private val BLUE = Color(137, 180, 250)
 
         private val LOG = Logger.getInstance(GraphToolWindowFactory::class.java)
     }
@@ -44,7 +55,8 @@ class GraphToolWindowFactory : ToolWindowFactory, DumbAware {
         // on our class loader (build 262+ ships JCEF as a separate bundled plugin; see
         // the optional com.intellij.modules.jcef <depends> in plugin.xml).
         if (!JcefSupport.isClassLoadable()) {
-            val content = ContentFactory.getInstance().createContent(createJcefErrorPanel(), "Call Graph", false)
+            val content = ContentFactory.getInstance()
+                .createContent(createJcefErrorPanel(), "Call Graph", false)
             toolWindow.contentManager.addContent(content)
             return
         }
@@ -55,7 +67,8 @@ class GraphToolWindowFactory : ToolWindowFactory, DumbAware {
         // (#22). Always fall back to a visible, actionable error panel instead.
         try {
             if (!JBCefApp.isSupported()) {
-                val content = ContentFactory.getInstance().createContent(createJcefErrorPanel(), "Call Graph", false)
+                val content = ContentFactory.getInstance()
+                    .createContent(createJcefErrorPanel(), "Call Graph", false)
                 toolWindow.contentManager.addContent(content)
                 return
             }
@@ -66,7 +79,8 @@ class GraphToolWindowFactory : ToolWindowFactory, DumbAware {
         } catch (t: Throwable) {
             LOG.error("Failed to create Mindmap tool window content", t)
             DebugLog.error("Failed to create Mindmap tool window content", t)
-            val content = ContentFactory.getInstance().createContent(createCrashErrorPanel(t), "Call Graph", false)
+            val content = ContentFactory.getInstance()
+                .createContent(createCrashErrorPanel(t), "Call Graph", false)
             toolWindow.contentManager.addContent(content)
         }
     }
@@ -81,14 +95,19 @@ class GraphToolWindowFactory : ToolWindowFactory, DumbAware {
         val outer = JPanel(GridBagLayout()).apply { background = BG }
         val card = buildInnerCard()
         card.add(JLabel(title).apply {
-            foreground = RED; font = Font("SansSerif", Font.BOLD, 16); alignmentX = Component.CENTER_ALIGNMENT
+            foreground = RED; font = Font("SansSerif", Font.BOLD, 16); alignmentX =
+            Component.CENTER_ALIGNMENT
         })
         card.add(Box.createVerticalStrut(12))
         card.add(JLabel(bodyHtml).apply { alignmentX = Component.CENTER_ALIGNMENT })
         card.add(Box.createVerticalStrut(16))
-        card.add(com.intellij.ui.components.BrowserLink("Not working? Checkout help", "https://vishal2376.github.io/mindmap#troubleshoot").apply {
-            alignmentX = Component.CENTER_ALIGNMENT; foreground = BLUE
-        })
+        card.add(
+            com.intellij.ui.components.BrowserLink(
+                "Not working? Checkout help",
+                "https://vishal2376.github.io/mindmap#troubleshoot"
+            ).apply {
+                alignmentX = Component.CENTER_ALIGNMENT; foreground = BLUE
+            })
         outer.add(card)
         return outer
     }
@@ -114,23 +133,23 @@ class GraphToolWindowFactory : ToolWindowFactory, DumbAware {
 
     private fun jcefInstructionsHtml(): String =
         "<html><div style='text-align:center;width:260px;color:#cdd6f4;font-family:sans-serif;font-size:12px;line-height:1.6;'>" +
-        "Mindmap requires <b style='color:#bac2de;'>Chromium (JCEF)</b>.<br><br>" +
-        "<div style='text-align:left;display:inline-block;'>" +
-        "<b style='color:#89b4fa;'>1. Go to <b>Help → Find Action</b><br>" +
-        "<b style='color:#89b4fa;'>2.</b> Search: <i>\"Choose Boot Java Runtime\"</i><br>" +
-        "<b style='color:#89b4fa;'>3.</b> Select latest runtime with <b>JCEF</b><br>" +
-        "<b style='color:#89b4fa;'>4.</b> Restart IDE<br>" +
-        "</div><br><br>" +
-        "<span style='color:#6c7086;font-size:11px;'>(IntelliJ IDEA includes JCEF by default)</span>" +
-        "</div></html>"
+                "Mindmap requires <b style='color:#bac2de;'>Chromium (JCEF)</b>.<br><br>" +
+                "<div style='text-align:left;display:inline-block;'>" +
+                "<b style='color:#89b4fa;'>1. Go to <b>Help → Find Action</b><br>" +
+                "<b style='color:#89b4fa;'>2.</b> Search: <i>\"Choose Boot Java Runtime\"</i><br>" +
+                "<b style='color:#89b4fa;'>3.</b> Select latest runtime with <b>JCEF</b><br>" +
+                "<b style='color:#89b4fa;'>4.</b> Restart IDE<br>" +
+                "</div><br><br>" +
+                "<span style='color:#6c7086;font-size:11px;'>(IntelliJ IDEA includes JCEF by default)</span>" +
+                "</div></html>"
 
     private fun crashInstructionsHtml(t: Throwable): String {
         val detail = (t.message ?: t.javaClass.simpleName)
             .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         return "<html><div style='text-align:center;width:260px;color:#cdd6f4;font-family:sans-serif;font-size:12px;line-height:1.6;'>" +
-            "Mindmap crashed while loading this panel.<br><br>" +
-            "<span style='color:#6c7086;font-size:11px;'>$detail</span><br><br>" +
-            "Please report this on GitHub with your IDE version and the log above." +
-            "</div></html>"
+                "Mindmap crashed while loading this panel.<br><br>" +
+                "<span style='color:#6c7086;font-size:11px;'>$detail</span><br><br>" +
+                "Please report this on GitHub with your IDE version and the log above." +
+                "</div></html>"
     }
 }

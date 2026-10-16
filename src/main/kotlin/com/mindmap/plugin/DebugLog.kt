@@ -14,7 +14,8 @@ import java.time.format.DateTimeFormatter
  */
 object DebugLog {
 
-    @Volatile var enabled = false
+    @Volatile
+    var enabled = false
 
     private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
 
@@ -29,7 +30,8 @@ object DebugLog {
         try {
             val timestamp = LocalDateTime.now().format(formatter)
             logFile.appendText("[$timestamp] $msg\n")
-        } catch (_: Exception) { }
+        } catch (_: Exception) {
+        }
     }
 
     /** Always writes to log file regardless of debug toggle — used for crashes and errors. */
@@ -38,7 +40,8 @@ object DebugLog {
             val timestamp = LocalDateTime.now().format(formatter)
             val stackTrace = throwable?.let { "\n${it.stackTraceToString()}" } ?: ""
             logFile.appendText("[$timestamp] ERROR: $msg$stackTrace\n")
-        } catch (_: Exception) { }
+        } catch (_: Exception) {
+        }
     }
 
 }

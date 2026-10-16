@@ -78,7 +78,10 @@ class JavaCallableProvider : CallableProvider {
      * calling Kotlin via a light method), we wrap as [CallableFunction.Kotlin] so
      * the Kotlin provider handles recursion.
      */
-    override fun outboundTargets(project: Project, callable: CallableFunction): List<CallableFunction> {
+    override fun outboundTargets(
+        project: Project,
+        callable: CallableFunction
+    ): List<CallableFunction> {
         val method = (callable as? CallableFunction.Java)?.m ?: return emptyList()
         val body = method.body ?: return emptyList()
 
@@ -135,10 +138,13 @@ class JavaCallableProvider : CallableProvider {
                         // If the Java parent is itself a light facade for a Kotlin function, prefer
                         // the Kotlin source so navigation lands on the .kt file.
                         val unwrapped = javaParent.unwrapped
-                        return@mapNotNull if (unwrapped is KtNamedFunction) CallableFunction.Kotlin(unwrapped)
+                        return@mapNotNull if (unwrapped is KtNamedFunction) CallableFunction.Kotlin(
+                            unwrapped
+                        )
                         else CallableFunction.Java(javaParent)
                     }
-                    val kotlinParent = PsiTreeUtil.getParentOfType(ref.element, KtNamedFunction::class.java)
+                    val kotlinParent =
+                        PsiTreeUtil.getParentOfType(ref.element, KtNamedFunction::class.java)
                     if (kotlinParent != null) CallableFunction.Kotlin(kotlinParent) else null
                 }
                 .distinct()
@@ -150,7 +156,10 @@ class JavaCallableProvider : CallableProvider {
         }
     }
 
-    override fun implementations(project: Project, callable: CallableFunction): List<CallableFunction> {
+    override fun implementations(
+        project: Project,
+        callable: CallableFunction
+    ): List<CallableFunction> {
         val method = (callable as? CallableFunction.Java)?.m ?: return emptyList()
         if (method.body != null) return emptyList()
         return try {
@@ -158,7 +167,10 @@ class JavaCallableProvider : CallableProvider {
             OverridingMethodsSearch.search(method, scope, true).toList()
                 .mapNotNull { overriding ->
                     when (val nav = overriding.navigationElement) {
-                        is KtNamedFunction -> if (nav.bodyExpression != null) CallableFunction.Kotlin(nav) else null
+                        is KtNamedFunction -> if (nav.bodyExpression != null) CallableFunction.Kotlin(
+                            nav
+                        ) else null
+
                         is PsiMethod -> if (nav.body != null) CallableFunction.Java(nav) else null
                         else -> null
                     }

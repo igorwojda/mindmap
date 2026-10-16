@@ -80,11 +80,15 @@ data class GraphData(
  * without discarding the nodes already on screen.
  */
 fun GraphData.merge(other: GraphData): GraphData {
-    val seenIds   = nodes.mapTo(HashSet()) { it.id }
+    val seenIds = nodes.mapTo(HashSet()) { it.id }
     val seenEdges = edges.mapTo(HashSet()) { "${it.from}\u0000${it.to}" }
-    val newNodes  = nodes.toMutableList()
-    val newEdges  = edges.toMutableList()
-    for (node in other.nodes) { if (seenIds.add(node.id)) newNodes.add(node) }
-    for (edge in other.edges) { if (seenEdges.add("${edge.from}\u0000${edge.to}")) newEdges.add(edge) }
+    val newNodes = nodes.toMutableList()
+    val newEdges = edges.toMutableList()
+    for (node in other.nodes) {
+        if (seenIds.add(node.id)) newNodes.add(node)
+    }
+    for (edge in other.edges) {
+        if (seenEdges.add("${edge.from}\u0000${edge.to}")) newEdges.add(edge)
+    }
     return GraphData(newNodes, newEdges)
 }

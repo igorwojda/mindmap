@@ -4,7 +4,9 @@
 
 # **Mindmap**
 
-An IntelliJ IDEA / Android Studio plugin that generates interactive call graph visualizations for **Kotlin** functions. Place your cursor on any function and press **Alt / Option + G** to view the call chain.
+An IntelliJ IDEA / Android Studio plugin that generates interactive call graph visualizations for
+**Kotlin** functions. Place your cursor on any function and press **Alt / Option + G** to view the
+call chain.
 
 <br/>
 
@@ -33,7 +35,8 @@ An IntelliJ IDEA / Android Studio plugin that generates interactive call graph v
 - **Search Filter** — Filter nodes by name across both views
 - **Hover Info Cards** — Signature, file location, depth, and LOC count
 
-> For detailed documentation, screenshots, shortcuts, and FAQ visit **[vishal2376.github.io/mindmap](https://vishal2376.github.io/mindmap)**
+> For detailed documentation, screenshots, shortcuts, and FAQ visit
+> **[vishal2376.github.io/mindmap](https://vishal2376.github.io/mindmap)**
 
 ## Installation
 
@@ -56,7 +59,8 @@ cd mindmap
 ./gradlew buildPlugin
 ```
 
-The plugin `.zip` will be at `build/distributions/Mindmap-*.zip`. Install via **Settings → Plugins → ⚙️ → Install Plugin from Disk**.
+The plugin `.zip` will be at `build/distributions/Mindmap-*.zip`. Install via **Settings → Plugins →
+⚙️ → Install Plugin from Disk**.
 
 ## License
 

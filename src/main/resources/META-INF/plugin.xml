@@ -1,13 +1,10 @@
 <idea-plugin>
     <id>com.mindmap.plugin</id>
     <name>Mindmap - Call Graph Visualizer</name>
-    <vendor
-        email="vishalsingh2376@gmail.com"
-        url="https://vishal2376.github.io"
-    >Vishal Singh</vendor>
+    <vendor email="vishalsingh2376@gmail.com" url="https://vishal2376.github.io">Vishal Singh
+    </vendor>
 
-    <description
-    ><![CDATA[
+    <description><![CDATA[
     <h2>Mindmap - Call Graph Visualizer</h2>
     <p>Visualize function call graphs as interactive mind maps inside your IDE. Place your cursor on any <b>Kotlin</b> or <b>Java</b> function and press <b>Alt / Option + G</b> to instantly see its callers, callees, and function depth — including <b>cross-language edges</b> between Kotlin and Java.</p>
 
@@ -39,8 +36,7 @@
     <p><em>Supports Kotlin (K1 &amp; K2) and Java. Compatible with IntelliJ IDEA and Android Studio. Built on an extensible provider architecture — additional JetBrains languages can be added without UI changes.</em></p>
     ]]></description>
 
-    <change-notes
-    ><![CDATA[
+    <change-notes><![CDATA[
     <h3>1.0.6</h3>
     <ul>
         <li><b>Depth settings persist</b> — outbound/inbound depth and filter toggles are remembered across IDE restarts and applied to every Alt+G analysis (#18)</li>
@@ -143,10 +139,8 @@
          community plugins can add language support. dynamic=true allows
          install/enable/disable without IDE restart. -->
     <extensionPoints>
-        <extensionPoint
-            name="callableProvider"
-            interface="com.mindmap.plugin.analysis.CallableProvider"
-            dynamic="true"/>
+        <extensionPoint name="callableProvider"
+                interface="com.mindmap.plugin.analysis.CallableProvider" dynamic="true" />
     </extensionPoints>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
@@ -160,29 +154,21 @@
       that only loads when the host IDE has the matching module.
     -->
     <extensions defaultExtensionNs="com.mindmap.plugin">
-        <callableProvider implementation="com.mindmap.plugin.analysis.KotlinCallableProvider"/>
-        <callableProvider implementation="com.mindmap.plugin.analysis.JavaCallableProvider"/>
+        <callableProvider implementation="com.mindmap.plugin.analysis.KotlinCallableProvider" />
+        <callableProvider implementation="com.mindmap.plugin.analysis.JavaCallableProvider" />
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow
-            id="Mindmap"
-            secondary="true"
-            icon="/icons/mindmapToolWindow.svg"
-            anchor="right"
-            doNotActivateOnStart="true"
-            factoryClass="com.mindmap.plugin.ui.GraphToolWindowFactory"
-        />
+        <toolWindow id="Mindmap" secondary="true" icon="/icons/mindmapToolWindow.svg" anchor="right"
+                doNotActivateOnStart="true"
+                factoryClass="com.mindmap.plugin.ui.GraphToolWindowFactory" />
     </extensions>
 
     <actions>
-        <action
-            id="ShowCallGraphAction"
-            class="com.mindmap.plugin.actions.ShowCallGraphAction"
-            text="Generate Mindmap"
-            description="Generate a call graph for the selected function"
-            icon="/icons/mindmapActionIcon.svg"
-        >
+        <action id="ShowCallGraphAction" class="com.mindmap.plugin.actions.ShowCallGraphAction"
+                text="Generate Mindmap"
+                description="Generate a call graph for the selected function"
+                icon="/icons/mindmapActionIcon.svg">
             <add-to-group group-id="EditorPopupMenu" anchor="last" />
             <keyboard-shortcut keymap="$default" first-keystroke="alt G" />
         </action>

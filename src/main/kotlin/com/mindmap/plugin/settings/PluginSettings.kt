@@ -33,35 +33,51 @@ class PluginSettings : PersistentStateComponent<PluginSettings.State> {
     private var state = State()
 
     override fun getState(): State = state
-    override fun loadState(s: State) { XmlSerializerUtil.copyBean(s, state) }
+    override fun loadState(s: State) {
+        XmlSerializerUtil.copyBean(s, state)
+    }
 
     var outboundDepth: Int
         get() = state.outboundDepth
-        set(v) { state.outboundDepth = v.coerceIn(1, 5) }
+        set(v) {
+            state.outboundDepth = v.coerceIn(1, 5)
+        }
 
     var inboundDepth: Int
         get() = state.inboundDepth
-        set(v) { state.inboundDepth = v.coerceIn(1, 5) }
+        set(v) {
+            state.inboundDepth = v.coerceIn(1, 5)
+        }
 
     var retraceOutboundDepth: Int
         get() = state.retraceOutboundDepth
-        set(v) { state.retraceOutboundDepth = v.coerceIn(1, 5) }
+        set(v) {
+            state.retraceOutboundDepth = v.coerceIn(1, 5)
+        }
 
     var retraceInboundDepth: Int
         get() = state.retraceInboundDepth
-        set(v) { state.retraceInboundDepth = v.coerceIn(1, 5) }
+        set(v) {
+            state.retraceInboundDepth = v.coerceIn(1, 5)
+        }
 
     var excludeTests: Boolean
         get() = state.excludeTests
-        set(v) { state.excludeTests = v }
+        set(v) {
+            state.excludeTests = v
+        }
 
     var debugMode: Boolean
         get() = state.debugMode
-        set(v) { state.debugMode = v }
+        set(v) {
+            state.debugMode = v
+        }
 
     var showClassPrefix: Boolean
         get() = state.showClassPrefix
-        set(v) { state.showClassPrefix = v }
+        set(v) {
+            state.showClassPrefix = v
+        }
 
     companion object {
         fun getInstance(project: Project): PluginSettings = project.service()

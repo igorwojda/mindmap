@@ -7,6 +7,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.GlobalSearchScope
+import com.mindmap.plugin.analysis.GraphAnalyzer.Companion.MAX_INBOUND_REFS
+import com.mindmap.plugin.analysis.GraphAnalyzer.Companion.MAX_NODES
 
 /**
  * Language-neutral orchestrator for call-graph construction.
@@ -80,7 +82,7 @@ class GraphAnalyzer(
 
         debug {
             "Building call graph for '${root.name}' in ${root.containingFile?.name} — " +
-                "outbound depth: $maxOutboundDepth, inbound depth: $maxInboundDepth, lang: ${root.languageId}"
+                    "outbound depth: $maxOutboundDepth, inbound depth: $maxInboundDepth, lang: ${root.languageId}"
         }
 
         try {
@@ -98,7 +100,8 @@ class GraphAnalyzer(
                     for (impl in provider.implementations(project, root)) {
                         if (nodes.size >= MAX_NODES) break
                         val implId = getCallableId(impl)
-                        if (!nodes.containsKey(implId)) nodes[implId] = createNode(impl, NodeType.OUTBOUND, 1)
+                        if (!nodes.containsKey(implId)) nodes[implId] =
+                            createNode(impl, NodeType.OUTBOUND, 1)
                         addEdgeIfNew(rootId, implId, nodes, edges, edgeKeys)
                         analyzeOutbound(impl, nodes, edges, edgeKeys, 2, indicator)
                     }
@@ -118,7 +121,7 @@ class GraphAnalyzer(
 
         debug {
             "Graph build complete in ${System.currentTimeMillis() - startTime}ms — " +
-                "${nodes.size} nodes, ${edges.size} edges"
+                    "${nodes.size} nodes, ${edges.size} edges"
         }
         return GraphData(nodes.values.toList(), edges)
     }
@@ -199,14 +202,23 @@ class GraphAnalyzer(
 
         val targetId = getCallableId(target)
         val isLibrary = !isSourceCode(target)
-        if (!nodes.containsKey(targetId)) nodes[targetId] = createNode(target, NodeType.OUTBOUND, currentDepth, isLibrary)
+        if (!nodes.containsKey(targetId)) nodes[targetId] =
+            createNode(target, NodeType.OUTBOUND, currentDepth, isLibrary)
         addEdgeIfNew(callerId, targetId, nodes, edges, edgeKeys)
 
         if (!isLibrary && currentDepth < maxOutboundDepth) {
             if (target.hasBody) {
                 analyzeOutbound(target, nodes, edges, edgeKeys, currentDepth + 1, indicator)
             } else {
-                expandAbstractOutbound(targetId, target, nodes, edges, edgeKeys, currentDepth, indicator)
+                expandAbstractOutbound(
+                    targetId,
+                    target,
+                    nodes,
+                    edges,
+                    edgeKeys,
+                    currentDepth,
+                    indicator
+                )
             }
         }
     }
@@ -224,7 +236,8 @@ class GraphAnalyzer(
         for (impl in provider.implementations(project, target)) {
             if (nodes.size >= MAX_NODES) break
             val implId = getCallableId(impl)
-            if (!nodes.containsKey(implId)) nodes[implId] = createNode(impl, NodeType.OUTBOUND, currentDepth + 1)
+            if (!nodes.containsKey(implId)) nodes[implId] =
+                createNode(impl, NodeType.OUTBOUND, currentDepth + 1)
             addEdgeIfNew(targetId, implId, nodes, edges, edgeKeys)
             if (currentDepth + 1 < maxOutboundDepth) {
                 analyzeOutbound(impl, nodes, edges, edgeKeys, currentDepth + 2, indicator)
@@ -265,7 +278,8 @@ class GraphAnalyzer(
             val callerId = getCallableId(caller)
             val isLibrary = !isSourceCode(caller)
 
-            if (!nodes.containsKey(callerId)) nodes[callerId] = createNode(caller, NodeType.INBOUND, currentDepth, isLibrary)
+            if (!nodes.containsKey(callerId)) nodes[callerId] =
+                createNode(caller, NodeType.INBOUND, currentDepth, isLibrary)
             addEdgeIfNew(callerId, targetId, nodes, edges, edgeKeys)
 
             if (!isLibrary && currentDepth < maxInboundDepth) {

@@ -133,7 +133,8 @@ interface CallableProvider {
      * The orchestrator calls this when the root (or an outbound target) has no body —
      * the graph then follows the concrete overrides instead of a dead-end declaration.
      */
-    fun implementations(project: Project, callable: CallableFunction): List<CallableFunction> = emptyList()
+    fun implementations(project: Project, callable: CallableFunction): List<CallableFunction> =
+        emptyList()
 
     /**
      * Language-specific test-function detection, honored only when the user enables the
