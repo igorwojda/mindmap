@@ -2675,14 +2675,30 @@
                             const dp = d.depth || 1;
                             (buckets[t][dp] = buckets[t][dp] || []).push(n.id);
                         });
+                        // Issue #17 (follow-up): Y was previously centered using only the
+                        // new batch's own index, blind to anything already in that column
+                        // (the base graph, or nodes an *earlier* trace placed there). Tracing
+                        // a node near an already-traced one stacked the new nodes right on
+                        // top of the old ones. Instead, find every already-known node in the
+                        // same column (x within half a column width) and start placing below
+                        // the lowest one; an empty column still gets the original centered
+                        // layout.
+                        const occupiedYInColumn = (targetX) => Object.values(savedPositions)
+                            .filter(p => Math.abs(p.x - targetX) < COL / 2)
+                            .map(p => p.y);
                         const placements = [];
                         ['INBOUND', 'OUTBOUND'].forEach(t => {
                             Object.entries(buckets[t]).forEach(([dp, ids]) => {
                                 const depth = +dp;
                                 const x = fp.x + (t === 'INBOUND' ? -depth * COL : depth * COL);
+                                const occupied = occupiedYInColumn(x);
+                                const baseY = occupied.length
+                                    ? Math.max(...occupied) + ROW
+                                    : fp.y - (ids.length - 1) / 2 * ROW;
                                 ids.forEach((id, i) => {
-                                    const y = fp.y + (i - (ids.length - 1) / 2) * ROW;
+                                    const y = baseY + i * ROW;
                                     placements.push({ id, x, y });
+                                    occupied.push(y);
                                 });
                             });
                         });
