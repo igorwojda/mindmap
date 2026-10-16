@@ -1,7 +1,7 @@
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "2.1.20"
-    id("org.jetbrains.intellij.platform") version "2.3.0"
+    id("org.jetbrains.kotlin.jvm") version "2.4.21"
+    id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 
 group = "com.mindmap.plugin"
@@ -16,9 +16,12 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        intellijIdeaCommunity("2024.3")
+        intellijIdea("2026.2.3")
 
         bundledPlugin("org.jetbrains.kotlin")
+        bundledPlugin("com.intellij.java")
+        bundledModule("com.intellij.modules.jcef")
+        plugin("org.jetbrains.android:262.10968.63")
 
         pluginVerifier()
         zipSigner()
@@ -28,6 +31,7 @@ dependencies {
 }
 
 kotlin {
+    jvmToolchain(21)
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
     }
