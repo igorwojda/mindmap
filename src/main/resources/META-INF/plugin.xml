@@ -46,6 +46,10 @@
         <li><b>Depth settings persist</b> — outbound/inbound depth and filter toggles are remembered across IDE restarts and applied to every Alt+G analysis (#18)</li>
         <li><b>Class-prefix toggle</b> — new setting to show node labels as <code>ClassName.functionName</code>; preference persists (#19)</li>
         <li><b>Fixed: trace layout</b> — tracing a node now places its callers to the left and callees to the right of the focused node, matching the root layout (#17)</li>
+        <li><b>Fixed: trace overlap</b> — tracing a node near an already-traced one no longer stacks the new nodes on top of the existing ones (#17)</li>
+        <li><b>Fixed: search box clearing on click</b> — clicking a node no longer discards an in-progress search or collapses the search box; it stays open until you clear it yourself (#14)</li>
+        <li><b>Fixed: JCEF-unavailable crash</b> — on IDE builds that ship the embedded browser as a separate plugin (e.g. 2026.2+, including some Android Studio builds), the tool window no longer fails silently; it shows a clear "JCEF Not Available" panel instead (#22)</li>
+        <li><b>Fixed: incomplete graph during indexing</b> — Alt+G, expand, and trace now wait for indexing to finish before analyzing, instead of silently rendering a root-only graph with no explanation</li>
     </ul>
 
     <h3>1.0.5</h3>
